@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block body %}
+<div id="main" class="container">
+
+    <form action="" method=post class="form-horizontal">
+        <h2>Add new sensor</h2>
+        <div class="control-group">
+            <div class="controls">
+                <input type="text" id="name" name="name" class="input-xlarge"
+                placeholder="Name the sensor" value="{{ request.form.name }}"
+                required>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="controls">
+                <select id="data_type" name="data_type">
+                    <option value="string">String</option>
+                    <option value="int">Int</option>        
+                    <option value="float">Float</option>        
+                    <option value="bool">Boolean</option>        
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="controls">
+                <button type="submit" class="btn btn-success">Add Sensor</button>
+            </div>
+        </div>
+    </form>
+
+
+    <h2>All Items</h2>
+    <table class="table table-hover">
+        <tr>
+            <th>Name
+            <th>Key <sub>(case sensitive)</sub>
+            <th>Data Type
+            <th>Date
+            <th>Actions
+        {%- for sensor in sensors %}
+        <tr>
+            <td>{{ sensor.name }}
+            <td>{{ sensor.key }}
+            <td>{{ sensor.data_type }}
+            <td>{{ sensor.date_added.strftime('%Y-%m-%d %H:%M') }}
+            <td><a href="/sensor/delete/{{ sensor.id }}">Delete</a>
+        {%- endfor %}
+    </table>
+
+</div>
+{% endblock %}
