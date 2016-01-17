@@ -3,12 +3,14 @@ import sys
 import yaml
 import uuid
 import datetime
+from functools import wraps
 from hashids import Hashids
-from flask import Flask, request, flash, url_for, redirect, render_template, abort, g
+from passlib.hash import sha256_crypt
+from flask import Flask, request, flash, url_for, redirect, render_template, g
 from flask.ext.sqlalchemy import SQLAlchemy
+from flask.ext.restful import Resource, Api, abort
 from flask.ext.login import LoginManager
 from flask.ext.login import login_user, logout_user, current_user, login_required
-from passlib.hash import sha256_crypt
 
 
 #######################
@@ -35,6 +37,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = config['secret_key']
 app.config['SQLALCHEMY_DATABASE_URI'] = config['db_uri']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+api = Api(app, prefix='/api/v1')
 db = SQLAlchemy(app)
 
 login_manager = LoginManager()
@@ -115,17 +119,29 @@ class ApiKey(db.Model):
 
 
 class Sensor(db.Model):
-    __tablename__ = 'sesors'
+    __tablename__ = 'sensors'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(60))
     data_type = db.Column(db.String(16))
     key = db.Column(db.String(36), unique=True)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    sensor_data = db.relationship('SensorData', backref='sensor', lazy='dynamic')
 
     def __init__(self, name, data_type):
         self.name = name
         self.data_type = data_type
+
+
+class SensorData(db.Model):
+    __tablename__ = 'sensor_data'
+    id = db.Column('id', db.Integer, primary_key=True)
+    value = db.Column(db.String(128))
+    date_added = db.Column(db.DateTime, default=datetime.datetime.now)
+    sensor_id = db.Column(db.Integer, db.ForeignKey('sensors.id'))
+
+    def __init__(self, value):
+        self.value = str(value)
 
 
 #######################
@@ -257,7 +273,86 @@ def sensor_delete(sensor_id):
 
 
 #######################
-# Utils
+# API Endpoints
+#######################
+
+def authenticate_api(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            # Get apikey and check it against the database
+            apikey = request.args['apikey']
+            found_key = ApiKey.query.filter_by(key=apikey).scalar()
+            if found_key is not None:
+                # If valid, return
+                return func(*args, **kwargs)
+            # If invalid, abort
+            abort(401)
+        except KeyError:
+            # If apikey is not even passed
+            abort(401)
+    return wrapper
+
+
+def validate_api_sensor(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+        try:
+            api_key = request.args['apikey']
+            sensor = request.args['sensor']
+            # Check that the apikey has acccess to the sensor
+            key_user_id = ApiKey.query.filter_by(key=api_key).scalar().user_id
+            sensor_user_id = Sensor.query.filter_by(key=sensor).scalar().user_id
+            if key_user_id == sensor_user_id:
+                # The api key and sensor both belong to the same user
+                return func(*args, **kwargs)
+            else:
+                rdata['message'] = "Invalid sensor"
+        except KeyError:
+            rdata['message'] = "You are missing sensor key"
+        except AttributeError:
+            rdata['message'] = "Invalid sensor"
+
+        return rdata
+    return wrapper
+
+
+class APIAddData(Resource):
+    method_decorators = [validate_api_sensor, authenticate_api]
+
+    def get(self):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+        try:
+            sensor_key = request.args['sensor']
+            value = request.args['value']
+            # Add sensor data to db
+            sensor = Sensor.query.filter_by(key=sensor_key).scalar()
+            sensor_data = SensorData(value)
+            sensor_data.sensor = sensor
+
+            db.session.add(sensor_data)
+            db.session.commit()
+            rdata['success'] = True
+        except KeyError:
+            # sensor key is checked with `validate_api_sensor`
+            rdata['message'] = "You are missing the value"
+        except Exception as e:
+            print(str(e))
+            rdata['message'] = "Oops, something went wrong."
+
+        return rdata
+
+
+api.add_resource(APIAddData, '/add')
+
+
+#######################
+# App Utils
 #######################
 @login_manager.user_loader
 def load_user(id):
