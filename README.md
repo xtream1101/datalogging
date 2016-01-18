@@ -21,3 +21,14 @@ host: 0.0.0.0
 port: 5000
 secret_key: SECRET_KEY
 ```
+
+
+## Api values that must be passed
+* apikey - api key (use different keys for adding and getting)
+* sensor - 6 char sensor key
+
+### Adding data
+* value - value you want to add to the database
+
+### Getting data
+* sort_by - Default is `desc`, can also use `asc`

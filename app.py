@@ -348,12 +348,113 @@ class APIAddData(Resource):
         return rdata
 
 
+class APIGetData(Resource):
+    method_decorators = [validate_api_sensor, authenticate_api]
+
+    def get(self):
+        rdata = {'success': False,
+                 'message': "",
+                 'data': None
+                 }
+        try:
+            sensor_key = request.args['sensor']
+            # Set up data dict
+            rdata['data'] = {}
+            data = rdata['data']
+            data['errors'] = {}
+
+            # Default sort_by is 'desc'
+            sort_by = 'desc'
+            if 'sort_by' in request.args:
+                if request.args['sort_by'] == 'asc':
+                    sort_by = 'asc'
+                elif request.args['sort_by'] != 'desc':
+                    data['errors']['sort_by'] = {'error_msg': "You cannot sort by " + request.args['sort_by'] + ". Defaulting to " + sort_by}
+
+            # Get sensor to find what data type the values are
+            sensor = Sensor.query.filter_by(key=sensor_key).scalar()
+            # Get all of the data for that sensor
+            if sort_by == 'asc':
+                sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.asc())
+            else:
+                sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.desc())
+
+            data['sensor'] = {'name': sensor.name,
+                              'date_added': datetime_to_str(sensor.date_added),
+                              'key': sensor.key,
+                              'data_type': sensor.data_type
+                              }
+            data['sort_by'] = sort_by
+
+            data['values'], data['errors']['values'] = get_value_list(sensor_data, sensor.data_type)
+            rdata['success'] = True
+        except KeyError:
+            # sensor key is checked with `validate_api_sensor`
+            rdata['message'] = "You are missing the value"
+        except Exception as e:
+            print(str(e))
+            rdata['message'] = "Oops, something went wrong."
+
+        return rdata
+
+
 api.add_resource(APIAddData, '/add')
+api.add_resource(APIGetData, '/get')
 
 
 #######################
 # App Utils
 #######################
+def datetime_to_str(timestamp):
+    # The script is set to use UTC, so all times are in UTC
+    return timestamp.isoformat() + "+00:00"
+
+
+def convert_value(data_type):
+    def default(value):
+        # Just return as a string
+        return value
+
+    def to_int(value):
+        try:
+            # First try to convert string -> int
+            return int(value)
+        except ValueError:
+            try:
+                # Next try and convert string -> float -> int
+                return int(float(value))
+            except ValueError:
+                # Give up and just give back the string
+                return None
+
+    if data_type == "int":
+        return to_int
+
+    # By default convert to string
+    return default
+
+
+def get_value_list(values, data_type):
+    """
+    :returns: list of valid data points, list of failed data points
+    """
+    data_list = []
+    data_errors = []
+    convert = convert_value(data_type)
+    for data in values:
+        converted_value = convert(data.value)
+        if converted_value is not None:
+            data_list.append({'timestamp': datetime_to_str(data.date_added),
+                              'value': converted_value
+                              })
+        else:
+            data_errors.append({'timestamp': datetime_to_str(data.date_added),
+                                'value': data.value,
+                                'error_msg': "Could not convert data point to " + data_type
+                                })
+    return data_list, data_errors
+
+
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
