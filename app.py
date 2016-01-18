@@ -70,8 +70,8 @@ class User(db.Model):
     password = db.Column(db.String(255))
     email = db.Column(db.String(50), unique=True, index=True)
     registered_on = db.Column(db.DateTime, default=datetime.datetime.now)
-    apikeys = db.relationship('ApiKey', backref='user', lazy='dynamic')
-    sensor_keys = db.relationship('Sensor', backref='user', lazy='dynamic')
+    apikeys = db.relationship('ApiKey', backref='user', cascade='all, delete', lazy='dynamic')
+    sensor_keys = db.relationship('Sensor', backref='user', cascade='all, delete', lazy='dynamic')
 
     def __init__(self, first_name, last_name, password, email):
         self.first_name = first_name
@@ -126,7 +126,7 @@ class Sensor(db.Model):
     key = db.Column(db.String(36), unique=True)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    sensor_data = db.relationship('SensorData', backref='sensor', lazy='dynamic')
+    sensor_data = db.relationship('SensorData', backref='sensor', cascade='all, delete', lazy='dynamic')
 
     def __init__(self, name, data_type):
         self.name = name
@@ -230,9 +230,10 @@ def apikeys():
 @app.route('/apikey/delete/<int:apikey_id>', methods=['GET'])
 @login_required
 def apikey_delete(apikey_id):
-    ApiKey.query.filter_by(user_id=g.user.id).filter_by(id=apikey_id).delete()
+    api_key = ApiKey.query.filter_by(user_id=g.user.id).filter_by(id=apikey_id).scalar()
+    db.session.delete(api_key)
     db.session.commit()
-    flash("Deleted API Key")
+    flash("Deleted API key " + api_key.name)
     return redirect(url_for('apikeys'))
 
 
@@ -266,9 +267,10 @@ def sensors():
 @app.route('/sensor/delete/<int:sensor_id>', methods=['GET'])
 @login_required
 def sensor_delete(sensor_id):
-    Sensor.query.filter_by(user_id=g.user.id).filter_by(id=sensor_id).delete()
+    sensor = Sensor.query.filter_by(user_id=g.user.id).filter_by(id=sensor_id).scalar()
+    db.session.delete(sensor)
     db.session.commit()
-    flash("Deleted sensor")
+    flash("Deleted sensor " + sensor.name)
     return redirect(url_for('sensors'))
 
 
