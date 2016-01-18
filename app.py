@@ -277,7 +277,6 @@ def sensor_delete(sensor_id):
 #######################
 # API Endpoints
 #######################
-
 def authenticate_api(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -345,7 +344,7 @@ class APIAddData(Resource):
             rdata['message'] = "You are missing the value"
         except Exception as e:
             print(str(e))
-            rdata['message'] = "Oops, something went wrong."
+            rdata['message'] = "Oops, something went wrong"
 
         return rdata
 
@@ -371,7 +370,9 @@ class APIGetData(Resource):
                 if request.args['sort_by'] == 'asc':
                     sort_by = 'asc'
                 elif request.args['sort_by'] != 'desc':
-                    data['errors']['sort_by'] = {'error_msg': "You cannot sort by " + request.args['sort_by'] + ". Defaulting to " + sort_by}
+                    data['errors']['sort_by'] = {'error_msg': "You cannot sort by {}. Defaulting to {}"
+                                                              .format(request.args['sort_by'], sort_by)
+                                                 }
 
             # Get sensor to find what data type the values are
             sensor = Sensor.query.filter_by(key=sensor_key).scalar()
@@ -395,7 +396,7 @@ class APIGetData(Resource):
             rdata['message'] = "You are missing the value"
         except Exception as e:
             print(str(e))
-            rdata['message'] = "Oops, something went wrong."
+            rdata['message'] = "Oops, something went wrong"
 
         return rdata
 
@@ -429,8 +430,20 @@ def convert_value(data_type):
                 # Give up and just give back the string
                 return None
 
+    def to_boolean(value):
+        true_values  = ['true',  'on',  '1', 'yes', 'y']
+        false_values = ['false', 'off', '0', 'no',  'n']
+        if value.lower() in true_values:
+            return True
+        elif value.lower() in false_values:
+            return False
+        else:
+            return None
+
     if data_type == "int":
         return to_int
+    elif data_type == "boolean":
+        return to_boolean
 
     # By default convert to string
     return default
