@@ -25,6 +25,17 @@
 
         <div class="control-group">
             <div class="controls">
+                <select id="group" name="group">
+                    <option value="">No Group</option>
+                    {%- for group in groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                    {%- endfor %}        
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="controls">
                 <button type="submit" class="btn btn-success">Add Sensor</button>
             </div>
         </div>
@@ -37,6 +48,7 @@
             <th>Name
             <th>Key <sub>(case sensitive)</sub>
             <th>Data Type
+            <th>Group
             <th>Date
             <th>Actions
         {%- for sensor in sensors %}
@@ -44,6 +56,7 @@
             <td>{{ sensor.name }}
             <td>{{ sensor.key }}
             <td>{{ sensor.data_type }}
+            <td>{{ sensor.group.name }}
             <td>{{ sensor.date_added.strftime('%Y-%m-%d %H:%M') }}
             <td><a href="/sensor/delete/{{ sensor.id }}">Delete</a>
         {%- endfor %}

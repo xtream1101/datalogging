@@ -54,9 +54,9 @@ def generate_api_key():
     return str(uuid.uuid4())
 
 
-def generate_sensor_key(sensor_id):
-    hashids = Hashids(salt='Sensor salt xyz', min_length=6)
-    return hashids.encode(sensor_id)
+def generate_key(id, salt, size=6):
+    hashids = Hashids(salt=salt, min_length=size)
+    return hashids.encode(id)
 
 
 #######################
@@ -71,7 +71,8 @@ class User(db.Model):
     email = db.Column(db.String(50), unique=True, index=True)
     registered_on = db.Column(db.DateTime, default=datetime.datetime.now)
     apikeys = db.relationship('ApiKey', backref='user', cascade='all, delete', lazy='dynamic')
-    sensor_keys = db.relationship('Sensor', backref='user', cascade='all, delete', lazy='dynamic')
+    sensors = db.relationship('Sensor', backref='user', cascade='all, delete', lazy='dynamic')
+    groups = db.relationship('Group', backref='user', lazy='dynamic')
 
     def __init__(self, first_name, last_name, password, email):
         self.first_name = first_name
@@ -126,6 +127,7 @@ class Sensor(db.Model):
     key = db.Column(db.String(36), unique=True)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
     sensor_data = db.relationship('SensorData', backref='sensor', cascade='all, delete', lazy='dynamic')
 
     def __init__(self, name, data_type):
@@ -142,6 +144,18 @@ class SensorData(db.Model):
 
     def __init__(self, value):
         self.value = str(value)
+
+
+class Group(db.Model):
+    __tablename__ = 'groups'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(32))
+    key = db.Column(db.String(36), unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    sensor = db.relationship('Sensor', backref='group', lazy='dynamic')
+
+    def __init__(self, name):
+        self.name = name
 
 
 #######################
@@ -244,23 +258,31 @@ def apikey_delete(apikey_id):
 @login_required
 def sensors():
     if request.method == 'POST':
-        if not request.form['name']:
+        name = request.form['name'].strip()
+        data_type = request.form['data_type'].strip()
+        group = request.form['group'].strip()
+        if not name:
             flash('Name is required', 'error')
-        elif not request.form['data_type']:
+        elif not data_type:
             flash('Type is required', 'error')
         else:
-            sensor = Sensor(request.form['name'], request.form['data_type'])
+            sensor = Sensor(name, data_type)
             sensor.user = g.user
+            # If a group is selected, add it to sensors
+            if group != "":
+                sensor.group = Group.query.filter_by(id=int(group)).scalar()
+
             db.session.add(sensor)
             # Flush to get the id so it can be encoded
             db.session.flush()
-            sensor.key = generate_sensor_key(sensor.id)
+            sensor.key = generate_key(sensor.id, 'Sensor salt xyz')
             db.session.commit()
-            flash('Sensor was successfully created')
+            flash('Sensor {} was successfully created'.format(sensor.name))
             return redirect(url_for('sensors'))
 
     return render_template('sensors.html',
-                           sensors=Sensor.query.filter_by(user_id=g.user.id).order_by(Sensor.name.asc()).all()
+                           sensors=Sensor.query.filter_by(user_id=g.user.id).order_by(Sensor.name.asc()).all(),
+                           groups=Group.query.filter_by(user_id=g.user.id).order_by(Group.name.asc()).all()
                            )
 
 
@@ -272,6 +294,47 @@ def sensor_delete(sensor_id):
     db.session.commit()
     flash("Deleted sensor " + sensor.name)
     return redirect(url_for('sensors'))
+
+
+###
+# Group Routes
+###
+@app.route('/groups', methods=['GET', 'POST'])
+@login_required
+def groups():
+    if request.method == 'POST':
+        name = request.form['name'].strip()
+        if not name:
+            flash('Name is required', 'error')
+        else:
+            # Check if group name for user already exists
+            is_group = Group.query.filter_by(user_id=g.user.id).filter_by(name=name).scalar()
+            if is_group is not None:
+                flash('Group with name {} already exists'.format(name), 'error')
+            else:
+                group = Group(name)
+                group.user = g.user
+                db.session.add(group)
+                # Flush to get the id so it can be encoded
+                db.session.flush()
+                group.key = generate_key(group.id, 'Group salt abc')
+                db.session.commit()
+                flash('Group {} was successfully created'.format(group.name))
+                return redirect(url_for('groups'))
+
+    return render_template('groups.html',
+                           groups=Group.query.filter_by(user_id=g.user.id).order_by(Group.name.asc()).all()
+                           )
+
+
+@app.route('/group/delete/<int:group_id>', methods=['GET'])
+@login_required
+def group_delete(group_id):
+    group = Group.query.filter_by(user_id=g.user.id).filter_by(id=group_id).scalar()
+    db.session.delete(group)
+    db.session.commit()
+    flash("Deleted group {}".format(group.name))
+    return redirect(url_for('groups'))
 
 
 #######################

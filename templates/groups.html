@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block body %}
+<div id="main" class="container">
+
+    <form action="" method=post class="form-horizontal">
+        <h2>Add new group</h2>
+        <div class="control-group">
+            <div class="controls">
+                <input type="text" id="name" name="name" class="input-xlarge"
+                placeholder="Name the goup" value="{{ request.form.name }}"
+                required>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="controls">
+                <button type="submit" class="btn btn-success">Add Group</button>
+            </div>
+        </div>
+    </form>
+
+
+    <h2>All Groups</h2>
+    <table class="table table-hover">
+        <tr>
+            <th>Name
+            <th>Key <sub>(case sensitive)</sub>
+            <th>Actions
+        {%- for group in groups %}
+        <tr>
+            <td>{{ group.name }}
+            <td>{{ group.key }}
+            <td><a href="/group/delete/{{ group.id }}">Delete</a>
+        {%- endfor %}
+    </table>
+
+</div>
+{% endblock %}
