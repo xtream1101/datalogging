@@ -1,0 +1,21 @@
+body {
+    padding-top: 60px;
+    padding-bottom: 100px;
+}
+
+
+/* jQuery Tablesorter */
+table.tablesorter thead tr .header {
+    background-image: url(/static/img/bg.gif);
+    background-repeat: no-repeat;
+    background-position: center right;
+    cursor: pointer;
+}
+
+table.tablesorter thead tr .headerSortUp {
+    background-image: url(/static/img/asc.gif);
+}
+
+table.tablesorter thead tr .headerSortDown {
+    background-image: url(/static/img/desc.gif);
+}

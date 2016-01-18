@@ -43,23 +43,30 @@
 
 
     <h2>All Items</h2>
-    <table class="table table-hover">
-        <tr>
-            <th>Name
-            <th>Key <sub>(case sensitive)</sub>
-            <th>Data Type
-            <th>Group
-            <th>Date
-            <th>Actions
-        {%- for sensor in sensors %}
-        <tr>
-            <td>{{ sensor.name }}
-            <td>{{ sensor.key }}
-            <td>{{ sensor.data_type }}
-            <td>{{ sensor.group.name }}
-            <td>{{ sensor.date_added.strftime('%Y-%m-%d %H:%M') }}
-            <td><a href="/sensor/delete/{{ sensor.id }}">Delete</a>
-        {%- endfor %}
+    <!-- <table class="table table-hover"> -->
+    <table id="table-list" class="table table-striped tablesorter">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Key <sub>(case sensitive)</sub></th>
+                <th>Data Type</th>
+                <th>Group</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </th>
+        </thead>
+        <tbody>
+            {%- for sensor in sensors %}
+            <tr>
+                <td>{{ sensor.group.name }}.{{ sensor.name }}</td>
+                <td>{{ sensor.key }}</td>
+                <td>{{ sensor.data_type }}</td>
+                <td>{{ sensor.group.name }}</td>
+                <td>{{ sensor.date_added.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td><a href="/sensor/delete/{{ sensor.id }}">Delete</a></td>
+            </tr>
+            {%- endfor %}
+        </tbody>
     </table>
 
 </div>
