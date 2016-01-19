@@ -3,20 +3,13 @@
 <div id="main" class="container">
 
     <form action="" method=post class="form-horizontal">
-        <h2>Add new group</h2>
-        <div class="control-group">
-            <div class="controls">
-                <input type="text" id="name" name="name" class="input-xlarge"
-                placeholder="Name the goup" value="{{ request.form.name }}"
-                required>
-            </div>
-        </div>
+        <h4>Add new group</h4>
 
-        <div class="control-group">
-            <div class="controls">
-                <button type="submit" class="btn btn-success">Add Group</button>
-            </div>
-        </div>
+        <input type="text" id="name" name="name" class="input-large"
+        placeholder="Name the goup" value="{{ request.form.name }}"
+        required>
+
+        <button type="submit" class="btn btn-success">Add Group</button>
     </form>
 
 
