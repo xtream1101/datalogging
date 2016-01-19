@@ -365,20 +365,31 @@ def validate_api_sensor(func):
                  'message': ""
                  }
         try:
+            user_id = None
             api_key = request.args['apikey']
-            sensor = request.args['sensor']
-            # Check that the apikey has acccess to the sensor
+            if 'sensor' in request.args:
+                sensor_key = request.args['sensor']
+                # Check that the apikey has acccess to the sensor
+                user_id = Sensor.query.filter_by(key=sensor_key).scalar().user_id
+            elif 'group' in request.args:
+                group_key = request.args['group']
+                # Check that the apikey has acccess to the group
+                user_id = Group.query.filter_by(key=group_key).scalar().user_id
+            else:
+                rdata['message'] = "Missing sensor/group key"
+                return rdata
+
             key_user_id = ApiKey.query.filter_by(key=api_key).scalar().user_id
-            sensor_user_id = Sensor.query.filter_by(key=sensor).scalar().user_id
-            if key_user_id == sensor_user_id:
-                # The api key and sensor both belong to the same user
+            if key_user_id == user_id:
+                # The api key and sensor/group both belong to the same user
                 return func(*args, **kwargs)
             else:
-                rdata['message'] = "Invalid sensor"
-        except KeyError:
-            rdata['message'] = "You are missing sensor key"
+                rdata['message'] = "Invalid sensor/group key"
         except AttributeError:
-            rdata['message'] = "Invalid sensor"
+            rdata['message'] = "Invalid sensor/group key"
+        except Exception as e:
+            print(str(e))
+            rdata['message'] = "Oops, somthing went wrong"
 
         return rdata
     return wrapper
@@ -422,19 +433,30 @@ class APIGetData(Resource):
         rdata = {'success': False,
                  'message': "",
                  'data': None,
-                 'errors': {}
                  }
         try:
-            sensor_key = request.args['sensor']
             # Default sort_by is 'desc'
             sort_by = 'desc'
             if 'sort_by' in request.args:
                 if request.args['sort_by'] == 'asc':
                     sort_by = 'asc'
+            if 'sensor' in request.args:
+                # Requesting a single sensor
+                sensor_key = request.args['sensor']
+                rdata['data'] = get_sensor_data(sensor_key, sort_by)
+                rdata['success'] = True
+            elif 'group' in request.args:
+                # Requesting all sensors in a group
+                group_key = request.args['group']
+                group = Group.query.filter_by(key=group_key).scalar()
+                group_sensors = Sensor.query.filter_by(group=group).all()
+                rdata['data'] = []
+                for sensor in group_sensors:
+                    rdata['data'].append(get_sensor_data(sensor.key, sort_by))
 
-            # Get the data
-            rdata['data'] = get_sensor_data(sensor_key, sort_by)
-            rdata['success'] = True
+                rdata['success'] = True
+            else:
+                rdata['message'] = "Must pass in a `group` or `sensor` key"
         except Exception as e:
             print(str(e))
             rdata['message'] = "Oops, something went wrong"
