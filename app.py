@@ -431,11 +431,7 @@ class APIGetData(Resource):
             if 'sort_by' in request.args:
                 if request.args['sort_by'] == 'asc':
                     sort_by = 'asc'
-                elif request.args['sort_by'] != 'desc':
-                    rdata['errors']['sort_by'] = {'error_msg': "You cannot sort by {}. Defaulting to {}"
-                                                               .format(request.args['sort_by'], sort_by)
-                                                  }
-            rdata['sort_by'] = sort_by
+
             # Get the data
             rdata['data'] = get_sensor_data(sensor_key, sort_by)
             rdata['success'] = True
