@@ -237,7 +237,7 @@ def apikeys():
             return redirect(url_for('apikeys'))
 
     return render_template('apikeys.html',
-                           apikeys=ApiKey.query.filter_by(user_id=g.user.id).order_by(ApiKey.date_added.desc()).all()
+                           apikeys=ApiKey.query.filter_by(user_id=g.user.id).all()
                            )
 
 
@@ -281,7 +281,7 @@ def sensors():
             return redirect(url_for('sensors'))
 
     return render_template('sensors.html',
-                           sensors=Sensor.query.filter_by(user_id=g.user.id).order_by(Sensor.name.asc()).all(),
+                           sensors=Sensor.query.filter_by(user_id=g.user.id).all(),
                            groups=Group.query.filter_by(user_id=g.user.id).order_by(Group.name.asc()).all()
                            )
 
@@ -323,7 +323,7 @@ def groups():
                 return redirect(url_for('groups'))
 
     return render_template('groups.html',
-                           groups=Group.query.filter_by(user_id=g.user.id).order_by(Group.name.asc()).all()
+                           groups=Group.query.filter_by(user_id=g.user.id).all()
                            )
 
 
