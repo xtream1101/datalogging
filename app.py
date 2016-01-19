@@ -448,6 +448,7 @@ class APIGetData(Resource):
             data['sensor'] = {'name': sensor.name,
                               'date_added': datetime_to_str(sensor.date_added),
                               'key': sensor.key,
+                              'group': sensor.group.name,
                               'data_type': sensor.data_type
                               }
             data['sort_by'] = sort_by
@@ -493,6 +494,13 @@ def convert_value(data_type):
                 # Give up and just give back the string
                 return None
 
+    def to_float(value):
+        try:
+            return float(value)
+        except ValueError:
+            # Give up and just give back the string
+            return None
+
     def to_boolean(value):
         true_values  = ['true',  'on',  '1', 'yes', 'y']
         false_values = ['false', 'off', '0', 'no',  'n']
@@ -505,6 +513,8 @@ def convert_value(data_type):
 
     if data_type == "int":
         return to_int
+    elif data_type == "float":
+        return to_float
     elif data_type == "boolean":
         return to_boolean
 
