@@ -338,7 +338,7 @@ def group_delete(group_id):
 
 
 #######################
-# API Endpoints
+# API Method Decorators
 #######################
 def authenticate_api(func):
     @wraps(func)
@@ -384,6 +384,9 @@ def validate_api_sensor(func):
     return wrapper
 
 
+#######################
+# API Endpoints
+#######################
 class APIAddData(Resource):
     method_decorators = [validate_api_sensor, authenticate_api]
 
@@ -418,46 +421,24 @@ class APIGetData(Resource):
     def get(self):
         rdata = {'success': False,
                  'message': "",
-                 'data': None
+                 'data': None,
+                 'errors': {}
                  }
         try:
             sensor_key = request.args['sensor']
-            # Set up data dict
-            rdata['data'] = {}
-            data = rdata['data']
-            data['errors'] = {}
-
             # Default sort_by is 'desc'
             sort_by = 'desc'
             if 'sort_by' in request.args:
                 if request.args['sort_by'] == 'asc':
                     sort_by = 'asc'
                 elif request.args['sort_by'] != 'desc':
-                    data['errors']['sort_by'] = {'error_msg': "You cannot sort by {}. Defaulting to {}"
-                                                              .format(request.args['sort_by'], sort_by)
-                                                 }
-
-            # Get sensor to find what data type the values are
-            sensor = Sensor.query.filter_by(key=sensor_key).scalar()
-            # Get all of the data for that sensor
-            if sort_by == 'asc':
-                sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.asc())
-            else:
-                sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.desc())
-
-            data['sensor'] = {'name': sensor.name,
-                              'date_added': datetime_to_str(sensor.date_added),
-                              'key': sensor.key,
-                              'group': sensor.group.name,
-                              'data_type': sensor.data_type
-                              }
-            data['sort_by'] = sort_by
-
-            data['values'], data['errors']['values'] = get_value_list(sensor_data, sensor.data_type)
+                    rdata['errors']['sort_by'] = {'error_msg': "You cannot sort by {}. Defaulting to {}"
+                                                               .format(request.args['sort_by'], sort_by)
+                                                  }
+            rdata['sort_by'] = sort_by
+            # Get the data
+            rdata['data'] = get_sensor_data(sensor_key, sort_by)
             rdata['success'] = True
-        except KeyError:
-            # sensor key is checked with `validate_api_sensor`
-            rdata['message'] = "You are missing the value"
         except Exception as e:
             print(str(e))
             rdata['message'] = "Oops, something went wrong"
@@ -467,6 +448,33 @@ class APIGetData(Resource):
 
 api.add_resource(APIAddData, '/add')
 api.add_resource(APIGetData, '/get')
+
+
+#######################
+# API Utils
+#######################
+def get_sensor_data(sensor_key, sort_by='desc'):
+    data = {}
+    data['errors'] = {}
+
+    # Get sensor to find what data type the values are
+    sensor = Sensor.query.filter_by(key=sensor_key).scalar()
+    # Get all of the data for that sensor
+    if sort_by == 'asc':
+        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.asc())
+    else:
+        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.desc())
+
+    data['sensor'] = {'name': sensor.name,
+                      'date_added': datetime_to_str(sensor.date_added),
+                      'key': sensor.key,
+                      'group': sensor.group.name,
+                      'data_type': sensor.data_type
+                      }
+
+    data['values'], data['errors']['values'] = get_value_list(sensor_data, sensor.data_type)
+
+    return data
 
 
 #######################
