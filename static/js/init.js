@@ -1,3 +1,6 @@
 $(function(){
-    $("#table-list").tablesorter();
+    $("#table-list").tablesorter({
+        // Default sort first col in asc order
+        sortList: [[0,0]]
+    });
 });

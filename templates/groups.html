@@ -21,17 +21,23 @@
 
 
     <h2>All Groups</h2>
-    <table class="table table-hover">
-        <tr>
-            <th>Name
-            <th>Key <sub>(case sensitive)</sub>
-            <th>Actions
-        {%- for group in groups %}
-        <tr>
-            <td>{{ group.name }}
-            <td>{{ group.key }}
-            <td><a href="/group/delete/{{ group.id }}">Delete</a>
-        {%- endfor %}
+    <table id="table-list" class="table table-hover table-striped tablesorter">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Key <sub>(case sensitive)</sub></th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%- for group in groups %}
+            <tr>
+                <td>{{ group.name }}</td>
+                <td>{{ group.key }}</td>
+                <td><a href="/group/delete/{{ group.id }}">Delete</a></td>
+            </tr>
+            {%- endfor %}
+        </tbody>
     </table>
 
 </div>
