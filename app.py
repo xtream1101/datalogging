@@ -435,15 +435,26 @@ class APIGetData(Resource):
                  'data': None,
                  }
         try:
-            # Default sort_by is 'desc'
+            # Default sort_by
             sort_by = 'desc'
             if 'sort_by' in request.args:
                 if request.args['sort_by'] == 'asc':
                     sort_by = 'asc'
+
+            # Default limit
+            limit = None
+            if 'limit' in request.args:
+                # Limit number of values that are returned per sensor
+                try:
+                    limit = abs(int(request.args['limit']))
+                except:
+                    rdata['message'] = "Invalid limit: {}".format(request.args['limit'])
+                    return rdata
+
             if 'sensor' in request.args:
                 # Requesting a single sensor
                 sensor_key = request.args['sensor']
-                rdata['data'] = get_sensor_data(sensor_key, sort_by)
+                rdata['data'] = get_sensor_data(sensor_key, limit=limit, sort_by=sort_by)
                 rdata['success'] = True
             elif 'group' in request.args:
                 # Requesting all sensors in a group
@@ -452,7 +463,7 @@ class APIGetData(Resource):
                 group_sensors = Sensor.query.filter_by(group=group).all()
                 rdata['data'] = []
                 for sensor in group_sensors:
-                    rdata['data'].append(get_sensor_data(sensor.key, sort_by))
+                    rdata['data'].append(get_sensor_data(sensor.key, limit=limit, sort_by=sort_by))
 
                 rdata['success'] = True
             else:
@@ -471,7 +482,7 @@ api.add_resource(APIGetData, '/get')
 #######################
 # API Utils
 #######################
-def get_sensor_data(sensor_key, sort_by='desc'):
+def get_sensor_data(sensor_key, limit=None, sort_by='desc'):
     data = {}
     data['errors'] = {}
 
@@ -479,9 +490,9 @@ def get_sensor_data(sensor_key, sort_by='desc'):
     sensor = Sensor.query.filter_by(key=sensor_key).scalar()
     # Get all of the data for that sensor
     if sort_by == 'asc':
-        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.asc())
+        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.asc()).limit(limit)
     else:
-        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.desc())
+        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.desc()).limit(limit)
 
     data['sensor'] = {'name': sensor.name,
                       'date_added': datetime_to_str(sensor.date_added),

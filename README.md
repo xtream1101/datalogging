@@ -35,20 +35,20 @@ The data type that you expect the data to be. The data values will be returned i
 
 ## Api Params
 - __apikey__ - _Required_ - Api key (use different keys for adding and getting) make sure a host is set if you are using it to get
-- __sensor__ - _Required_ - 6 char sensor key
 
 ### Adding data
 - Endpoint: `/api/v1/add`
 - __value__ - _Required_ - value you want to add to the database
+- __sensor__ - _Required_ - 6 char sensor key
 
 ### Getting data
 - Endpoint: `/api/v1/get`
+- __sensor__ or __group__ - _Required_ - 6 char key
 - __sort_by__ - _Optional_ - Default is `desc`, other option is `asc`
-- Will return a json object:
-    + __data__ - _Type: Object_ - Contains the requested data items
+- __limit__ - _Optional_ - Default is to get all values. Must be an integer.
+- Returns a json object:
+    + __data__ - _Type: Object or Array_ - Contains the requested data items. If called with a `sensor` key, it will return an object with the data below. If called with a `group` key, it will return an array with these objects in it. The list of sensors is not sorted.
         * __errors__ - _Type: Object_ - Holds any errors that the data may have returned with
-            - __sort_by__ - _Type: Object_ - Contains any problem with the `sort_by` value that was passed.
-                + __error_msg__ - _Type: String_ - Error message
             - __values__ - _Type: Array_ - An array of data point objects that returned errors on get
                 + __error_msg__ - _Type: String_ - Message saying what went wrong
                 + __timestamp__ - _Type: String_ - ISO timestamp of when the data point was added
@@ -58,7 +58,6 @@ The data type that you expect the data to be. The data values will be returned i
             - __date_added__ - _Type: String_ - ISO timestamp of when the sensor was added
             - __key__ - _Type: String_ - Case-sensitive 6 char string to identify the sensor
             - __name__ - _Type: String_ - Name of the sensor to help identify it
-        * __sort_by__ - _Type: String_ - Either `desc` or `asc` to say how the data.values was sorted
         * __values__ - _Type: Array_ - List of data point objects sorted by `data.sort_by`, each object is as follows:
             - __timestamp__ - _Type: String_ - ISO timestamp of when the data point was added
             - __value__ - _Type: ?_ - The value converted to be the `sensor.data-type`
