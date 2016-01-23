@@ -9,6 +9,7 @@ from passlib.hash import sha256_crypt
 from flask import Flask, request, flash, url_for, redirect, render_template, g
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.restful import Resource, Api, abort
+from flask.ext.cors import CORS
 from flask.ext.login import LoginManager
 from flask.ext.login import login_user, logout_user, current_user, login_required
 
@@ -38,8 +39,9 @@ app.config['SECRET_KEY'] = config['secret_key']
 app.config['SQLALCHEMY_DATABASE_URI'] = config['db_uri']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-api = Api(app, prefix='/api/v1')
 db = SQLAlchemy(app)
+api = Api(app, prefix='/api/v1')
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 login_manager = LoginManager()
 login_manager.init_app(app)
