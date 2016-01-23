@@ -1,0 +1,17 @@
+aniso8601==1.1.0
+Flask==0.10.1
+Flask-Login==0.3.2
+Flask-RESTful==0.3.5
+Flask-SQLAlchemy==2.1
+hashids==1.1.0
+itsdangerous==0.24
+Jinja2==2.8
+MarkupSafe==0.23
+passlib==1.6.5
+PyMySQL==0.7.1
+python-dateutil==2.4.2
+pytz==2015.7
+PyYAML==3.11
+six==1.10.0
+SQLAlchemy==1.0.11
+Werkzeug==0.11.3
