@@ -417,8 +417,43 @@ class APIAddData(Resource):
             db.session.commit()
             rdata['success'] = True
         except KeyError:
+            rdata['message'] = "You are missing the sensor/value"
+        except Exception as e:
+            print(str(e))
+            rdata['message'] = "Oops, something went wrong"
+
+        return rdata
+
+    def post(self):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+        try:
+            group_key = request.args['group']
+            sensors = request.json
+
+            rdata['success'] = True
+            for data in sensors:
+                try:
+                    sensor_key = data['sensor']
+                    value = data['value']
+                    # Add sensor data to db
+                    sensor = Sensor.query.filter_by(key=sensor_key).scalar()
+                    if sensor is None:
+                        rdata['success'] = False
+                        rdata['message'] += "Invalid sensor: {}\n".format(sensor_key)
+                    else:
+                        sensor_data = SensorData(value)
+                        sensor_data.sensor = sensor
+                        db.session.add(sensor_data)
+                except KeyError:
+                    rdata['success'] = False
+                    rdata['message'] += "Need both sensor and value keys\n"
+                db.session.commit()
+            
+        except KeyError:
             # sensor key is checked with `validate_api_sensor`
-            rdata['message'] = "You are missing the value"
+            rdata['message'] = "You are missing the group"
         except Exception as e:
             print(str(e))
             rdata['message'] = "Oops, something went wrong"
