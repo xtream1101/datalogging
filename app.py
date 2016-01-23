@@ -109,7 +109,7 @@ class ApiKey(db.Model):
     __tablename__ = 'apikeys'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(60))
-    host = db.Column(db.String)
+    host = db.Column(db.String(255))
     key = db.Column(db.String(36), default=generate_api_key, unique=True)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
