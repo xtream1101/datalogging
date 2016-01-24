@@ -432,6 +432,7 @@ class APIAddData(Resource):
                  }
         try:
             group_key = request.args['group']
+            group = Group.query.filter_by(key=group_key).scalar()
             sensors = request.json
 
             rdata['success'] = True
@@ -439,8 +440,8 @@ class APIAddData(Resource):
                 try:
                     sensor_key = data['sensor']
                     value = data['value']
-                    # Add sensor data to db
-                    sensor = Sensor.query.filter_by(key=sensor_key).scalar()
+                    # Check if sensor is in group
+                    sensor = Sensor.query.filter_by(group=group).filter_by(key=sensor_key).scalar()
                     if sensor is None:
                         rdata['success'] = False
                         rdata['message'] += "Invalid sensor: {}\n".format(sensor_key)
@@ -448,13 +449,12 @@ class APIAddData(Resource):
                         sensor_data = SensorData(value)
                         sensor_data.sensor = sensor
                         db.session.add(sensor_data)
+                        rdata['message'] += "Added value for sensor: {}\n".format(sensor_key)
                 except KeyError:
                     rdata['success'] = False
                     rdata['message'] += "Need both sensor and value keys\n"
                 db.session.commit()
-            
         except KeyError:
-            # sensor key is checked with `validate_api_sensor`
             rdata['message'] = "You are missing the group"
         except Exception as e:
             print(str(e))
