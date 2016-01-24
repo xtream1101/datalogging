@@ -12,7 +12,7 @@ The data is not displayed anywhere on the site, but you can use another api key 
 `python3 app.py <configfile>`
 
 
-## Default config file
+## Default config values
 Config file is yaml syntax  
 ```
 db_uri: sqlite:///datalogger.sqlite
@@ -37,9 +37,29 @@ The data type that you expect the data to be. The data values will be returned i
 - __apikey__ - _Required_ - Api key (use different keys for adding and getting) make sure a host is set if you are using it to get
 
 ### Adding data
+
+#### Add data for single sensor
 - Endpoint: `/api/v1/add`
 - __value__ - _Required_ - value you want to add to the database
 - __sensor__ - _Required_ - 6 char sensor key
+
+#### Add data for multiple sensors using group key
+- Endpoint: `/api/v1/add`
+- __group__ - _Required_ - 6 char group key
+- POST json object: *sensor_name is case-insensitive*
+```
+[
+    {'sensor': '<sensor_key>', 'value': <value>},
+    {'sensor': '<sensor_key>', 'value': <value>},
+]
+```
+-OR-
+```
+[
+    {'sensor_name': '<sensor_name>', 'value': <value>},
+    {'sensor_name': '<sensor_name>', 'value': <value>},
+]
+```
 
 ### Getting data
 - Endpoint: `/api/v1/get`
@@ -58,7 +78,7 @@ The data type that you expect the data to be. The data values will be returned i
             - __date_added__ - _Type: String_ - ISO timestamp of when the sensor was added
             - __key__ - _Type: String_ - Case-sensitive 6 char string to identify the sensor
             - __name__ - _Type: String_ - Name of the sensor to help identify it
-        * __values__ - _Type: Array_ - List of data point objects sorted by `data.sort_by`, each object is as follows:
+        * __values__ - _Type: Array_ - List of data point objects sorted by `sort_by`, each object is as follows:
             - __timestamp__ - _Type: String_ - ISO timestamp of when the data point was added
             - __value__ - _Type: ?_ - The value converted to be the `sensor.data-type`
     + __message__ - _Type: String_ - Info text or an error message if `success` is false
