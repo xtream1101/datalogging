@@ -438,18 +438,25 @@ class APIAddData(Resource):
             rdata['success'] = True
             for data in sensors:
                 try:
-                    sensor_key = data['sensor']
                     value = data['value']
                     # Check if sensor is in group
-                    sensor = Sensor.query.filter_by(group=group).filter_by(key=sensor_key).scalar()
+                    if 'sensor' in data:
+                        # Use sensor key to add value
+                        sensor_id = data['sensor']
+                        sensor = Sensor.query.filter_by(group=group).filter_by(key=sensor_id).scalar()
+                    else:
+                        # Use sensor name to add value
+                        sensor_id = data['sensor_name']
+                        sensor = Sensor.query.filter_by(group=group).filter(Sensor.name.ilike(sensor_id)).scalar()
+
                     if sensor is None:
                         rdata['success'] = False
-                        rdata['message'] += "Invalid sensor: {}\n".format(sensor_key)
+                        rdata['message'] += "Invalid sensor: {}\n".format(sensor_id)
                     else:
                         sensor_data = SensorData(value)
                         sensor_data.sensor = sensor
                         db.session.add(sensor_data)
-                        rdata['message'] += "Added value for sensor: {}\n".format(sensor_key)
+                        rdata['message'] += "Added value for sensor: {}\n".format(sensor_id)
                 except KeyError:
                     rdata['success'] = False
                     rdata['message'] += "Need both sensor and value keys\n"
