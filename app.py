@@ -538,10 +538,16 @@ def get_sensor_data(sensor_key, limit=None, sort_by='desc'):
     else:
         sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.desc()).limit(limit)
 
+    try:
+        group_name = sensor.group.name
+    except:
+        # TODO: Find the correct exception to catch
+        group_name = ""
+
     data['sensor'] = {'name': sensor.name,
                       'date_added': datetime_to_str(sensor.date_added),
                       'key': sensor.key,
-                      'group': sensor.group.name,
+                      'group': group_name,
                       'data_type': sensor.data_type
                       }
 
