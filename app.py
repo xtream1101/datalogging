@@ -3,6 +3,7 @@ import sys
 import yaml
 import uuid
 import datetime
+import traceback
 from functools import wraps
 from hashids import Hashids
 from passlib.hash import sha256_crypt
@@ -140,7 +141,10 @@ class Sensor(db.Model):
 class SensorData(db.Model):
     __tablename__ = 'sensor_data'
     id = db.Column('id', db.Integer, primary_key=True)
-    value = db.Column(db.String(128))
+    # value = db.Column(db.String(128))
+    # TODO: Have different tables for different datatypes?
+    #       That way we are not using TEXT to store a single number
+    value = db.Column(db.Text)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
     sensor_id = db.Column(db.Integer, db.ForeignKey('sensors.id'))
 
@@ -462,9 +466,11 @@ class APIAddData(Resource):
                     rdata['message'] += "Need both sensor and value keys\n"
                 db.session.commit()
         except KeyError:
+            rdata['success'] = False
             rdata['message'] = "You are missing the group"
         except Exception as e:
-            print(str(e))
+            print(str(e), str(traceback.format_exc()))
+            rdata['success'] = False
             rdata['message'] = "Oops, something went wrong"
 
         return rdata
