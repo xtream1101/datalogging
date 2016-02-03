@@ -17,6 +17,7 @@ Config file is yaml syntax
 ```
 db_uri: sqlite:///datalogger.sqlite
 debug: false
+disable_registration: False
 host: 0.0.0.0
 port: 5000
 secret_key: SECRET_KEY

@@ -23,6 +23,7 @@ os.environ['TZ'] = 'UTC'
 
 config = {'db_uri': 'sqlite:///datalogger.sqlite',
           'debug': False,
+          'disable_registration': False,
           'host': '0.0.0.0',
           'port': 5000,
           'secret_key': 'SECRET_KEY'
@@ -174,6 +175,10 @@ def index():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if config['disable_registration'] is True:
+        flash("Registration is disabled at this time")
+        return redirect(url_for('login'))
+
     if request.method == 'GET':
         return render_template('register.html')
 
