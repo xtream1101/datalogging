@@ -35,40 +35,54 @@ The data type that you expect the data to be. The data values will be returned i
     + __False__ - `false, off, 0, no, n`
 
 ## Api Params
-- __apikey__ - _Required_ - Api key (use different keys for adding and getting) make sure a host is set if you are using it to get
+- __apikey__ - _Required_ - Api key (use different keys for adding and getting) make sure a host is set if you are using it to get so no one else can use your key
 
 ### Adding data
 
 #### Add data for single sensor
-- Endpoint: `/api/v1/add`
-- __value__ - _Required_ - value you want to add to the database
-- __sensor__ - _Required_ - 6 char sensor key
+1. First way (Get)
+    - Endpoint: `/api/v1/add/sensor`
+    - __value__ - _Required_ - value you want to add to the database
+    - __key__ - _Required_ - 6 char sensor key
+
+2. Second way (Post), used of sending a large block of text
+    - __key__ - _Required_ - 6 char sensor key
+    -  JSON object to send: `{'value': <value>}`
 
 #### Add data for multiple sensors using group key
-- Endpoint: `/api/v1/add`
-- __group__ - _Required_ - 6 char group key
-- POST json object: *sensor_name is case-insensitive*
+- Endpoint: `/api/v1/add/group`
+- __key__ - _Required_ - 6 char group key
+- POST JSON object: *sensor_name is case-insensitive*
 ```
 [
-    {'sensor': '<sensor_key>', 'value': <value>},
-    {'sensor': '<sensor_key>', 'value': <value>},
+    {'sensor': '<sensor_key1>', 'value': <value1>},
+    {'sensor': '<sensor_key2>', 'value': <value2>},
 ]
 ```
 -OR-
 ```
 [
-    {'sensor_name': '<sensor_name>', 'value': <value>},
-    {'sensor_name': '<sensor_name>', 'value': <value>},
+    {'sensor_name': '<sensor_name1>', 'value': <value1>},
+    {'sensor_name': '<sensor_name2>', 'value': <value2>},
 ]
 ```
 
 ### Getting data
-- Endpoint: `/api/v1/get`
-- __sensor__ or __group__ - _Required_ - 6 char key
+
+#### Get list of groups
+- Endpoint: `/api/v1/get/groups`
+- Returns JSON object:
+    + __data__ - _Type:  Array_ - Contains the list of groups, each object is as follows: 
+        * __name__ - _Type: String_ - Group name
+        * __key__ - _Type: String_ - Group key
+
+#### Get data from sensor or group
+- Endpoint: `/api/v1/get/sensor` or `/api/v1/get/group`
+- __key__ - _Required_ - 6 char key
 - __sort_by__ - _Optional_ - Default is `desc`, other option is `asc`
 - __limit__ - _Optional_ - Default is to get all values. Must be an integer.
-- Returns a json object:
-    + __data__ - _Type: Object or Array_ - Contains the requested data items. If called with a `sensor` key, it will return an object with the data below. If called with a `group` key, it will return an array with these objects in it. The list of sensors is not sorted.
+- Returns a JSON object:
+    + __data__ - _Type: Object or Array_ - Contains the requested data items. If called with a `sensor` endpoint, it will return an object with the data below. If called with a `group` endpoint, it will return an array with these objects in it. The list of sensors is not sorted, the values are.
         * __errors__ - _Type: Object_ - Holds any errors that the data may have returned with
             - __values__ - _Type: Array_ - An array of data point objects that returned errors on get
                 + __error_msg__ - _Type: String_ - Message saying what went wrong

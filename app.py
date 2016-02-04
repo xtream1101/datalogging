@@ -369,7 +369,7 @@ def authenticate_api(func):
     return wrapper
 
 
-def validate_api_sensor(func):
+def validate_api_sensor_key(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         rdata = {'success': False,
@@ -378,16 +378,12 @@ def validate_api_sensor(func):
         try:
             user_id = None
             api_key = request.args['apikey']
-            if 'sensor' in request.args:
-                sensor_key = request.args['sensor']
+            if 'key' in request.args:
+                sensor_key = request.args['key']
                 # Check that the apikey has acccess to the sensor
                 user_id = Sensor.query.filter_by(key=sensor_key).scalar().user_id
-            elif 'group' in request.args:
-                group_key = request.args['group']
-                # Check that the apikey has acccess to the group
-                user_id = Group.query.filter_by(key=group_key).scalar().user_id
             else:
-                rdata['message'] = "Missing sensor/group key"
+                rdata['message'] = "Missing sensor key"
                 return rdata
 
             key_user_id = ApiKey.query.filter_by(key=api_key).scalar().user_id
@@ -395,12 +391,45 @@ def validate_api_sensor(func):
                 # The api key and sensor/group both belong to the same user
                 return func(*args, **kwargs)
             else:
-                rdata['message'] = "Invalid sensor/group key"
+                rdata['message'] = "Invalid sensor key"
         except AttributeError:
-            rdata['message'] = "Invalid sensor/group key"
+            rdata['message'] = "Invalid sensor key"
         except Exception as e:
             print(str(e))
-            rdata['message'] = "Oops, somthing went wrong"
+            rdata['message'] = "Oops, somthing went wrong when validating your sensor"
+
+        return rdata
+    return wrapper
+
+
+def validate_api_group_key(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        rdata = {'success': False,
+                 'message': ""
+                 }
+        try:
+            user_id = None
+            api_key = request.args['apikey']
+            if 'key' in request.args:
+                group_key = request.args['key']
+                # Check that the apikey has acccess to the group
+                user_id = Group.query.filter_by(key=group_key).scalar().user_id
+            else:
+                rdata['message'] = "Missing group key"
+                return rdata
+
+            key_user_id = ApiKey.query.filter_by(key=api_key).scalar().user_id
+            if key_user_id == user_id:
+                # The api key and sensor/group both belong to the same user
+                return func(*args, **kwargs)
+            else:
+                rdata['message'] = "Invalid group key"
+        except AttributeError:
+            rdata['message'] = "Invalid group key"
+        except Exception as e:
+            print(str(e))
+            rdata['message'] = "Oops, somthing went wrong when validating your group"
 
         return rdata
     return wrapper
@@ -409,15 +438,15 @@ def validate_api_sensor(func):
 #######################
 # API Endpoints
 #######################
-class APIAddData(Resource):
-    method_decorators = [validate_api_sensor, authenticate_api]
+class APIAddSensorData(Resource):
+    method_decorators = [validate_api_sensor_key, authenticate_api]
 
     def get(self):
         rdata = {'success': False,
                  'message': ""
                  }
         try:
-            sensor_key = request.args['sensor']
+            sensor_key = request.args['key']
             value = request.args['value']
             # Add sensor data to db
             sensor = Sensor.query.filter_by(key=sensor_key).scalar()
@@ -428,7 +457,7 @@ class APIAddData(Resource):
             db.session.commit()
             rdata['success'] = True
         except KeyError:
-            rdata['message'] = "You are missing the sensor/value"
+            rdata['message'] = "You are missing the key/value"
         except Exception as e:
             print(str(e))
             rdata['message'] = "Oops, something went wrong"
@@ -439,8 +468,22 @@ class APIAddData(Resource):
         rdata = {'success': False,
                  'message': ""
                  }
+
+        rdata['success'] = False
+        rdata['message'] = "Currently not supported"
+
+        return rdata
+
+
+class APIAddGroupData(Resource):
+    method_decorators = [validate_api_group_key, authenticate_api]
+
+    def post(self):
+        rdata = {'success': False,
+                 'message': ""
+                 }
         try:
-            group_key = request.args['group']
+            group_key = request.args['key']
             group = Group.query.filter_by(key=group_key).scalar()
             sensors = request.json
 
@@ -468,21 +511,21 @@ class APIAddData(Resource):
                         rdata['message'] += "Added value for sensor: {}\n".format(sensor_id)
                 except KeyError:
                     rdata['success'] = False
-                    rdata['message'] += "Need both sensor and value keys\n"
+                    rdata['message'] += "Need both sensor value and group key\n"
                 db.session.commit()
         except KeyError:
             rdata['success'] = False
-            rdata['message'] = "You are missing the group"
+            rdata['message'] = "You are missing the group key"
         except Exception as e:
             print(str(e), str(traceback.format_exc()))
             rdata['success'] = False
-            rdata['message'] = "Oops, something went wrong"
+            rdata['message'] = "Oops, something went wrong with adding data to your group"
 
         return rdata
 
 
-class APIGetData(Resource):
-    method_decorators = [validate_api_sensor, authenticate_api]
+class APIGetSensorData(Resource):
+    method_decorators = [validate_api_sensor_key, authenticate_api]
 
     def get(self):
         rdata = {'success': False,
@@ -506,14 +549,48 @@ class APIGetData(Resource):
                     rdata['message'] = "Invalid limit: {}".format(request.args['limit'])
                     return rdata
 
-            if 'sensor' in request.args:
+            if 'key' in request.args:
                 # Requesting a single sensor
-                sensor_key = request.args['sensor']
+                sensor_key = request.args['key']
                 rdata['data'] = get_sensor_data(sensor_key, limit=limit, sort_by=sort_by)
                 rdata['success'] = True
-            elif 'group' in request.args:
+            else:
+                rdata['message'] = "Must pass in a sensor key"
+        except Exception as e:
+            print(str(e))
+            rdata['message'] = "Oops, something went wrong getting your sensor data"
+
+        return rdata
+
+
+class APIGetGroupData(Resource):
+    method_decorators = [validate_api_group_key, authenticate_api]
+
+    def get(self):
+        rdata = {'success': False,
+                 'message': "",
+                 'data': None,
+                 }
+        try:
+            # Default sort_by
+            sort_by = 'desc'
+            if 'sort_by' in request.args:
+                if request.args['sort_by'] == 'asc':
+                    sort_by = 'asc'
+
+            # Default limit
+            limit = None
+            if 'limit' in request.args:
+                # Limit number of values that are returned per sensor
+                try:
+                    limit = abs(int(request.args['limit']))
+                except:
+                    rdata['message'] = "Invalid limit: {}".format(request.args['limit'])
+                    return rdata
+
+            if 'key' in request.args:
                 # Requesting all sensors in a group
-                group_key = request.args['group']
+                group_key = request.args['key']
                 group = Group.query.filter_by(key=group_key).scalar()
                 group_sensors = Sensor.query.filter_by(group=group).all()
                 rdata['data'] = []
@@ -522,16 +599,45 @@ class APIGetData(Resource):
 
                 rdata['success'] = True
             else:
-                rdata['message'] = "Must pass in a `group` or `sensor` key"
+                rdata['message'] = "Must pass in a group key"
         except Exception as e:
             print(str(e))
-            rdata['message'] = "Oops, something went wrong"
+            rdata['message'] = "Oops, something went wrong with getting your group data"
 
         return rdata
 
 
-api.add_resource(APIAddData, '/add')
-api.add_resource(APIGetData, '/get')
+class APIGetGroupList(Resource):
+    method_decorators = [authenticate_api]
+
+    def get(self):
+        rdata = {'success': False,
+                 'message': "",
+                 'data': None,
+                 }
+        try:
+            # Requesting all sensors in a group
+            groups = Group.query.all()
+            rdata['data'] = []
+            for group in groups:
+                group_dict = {'name': group.name, 'key': group.key}
+                rdata['data'].append(group_dict)
+
+            rdata['success'] = True
+        except Exception as e:
+            print(str(e))
+            rdata['message'] = "Oops, something went wrong with getting the group list"
+
+        return rdata
+
+
+# api.add_resource(APIAddData, '/add')
+api.add_resource(APIAddGroupData, '/add/group')
+api.add_resource(APIAddSensorData, '/add/sensor')
+# api.add_resource(APIGetData, '/get')
+api.add_resource(APIGetGroupList, '/get/groups')
+api.add_resource(APIGetGroupData, '/get/group')
+api.add_resource(APIGetSensorData, '/get/sensor')
 
 
 #######################
