@@ -5,49 +5,50 @@
 		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
 		<meta charset="utf-8">
 
-		<link href="/static/css/bootstrap.css" rel="stylesheet">
-		<link href="/static/css/styles.css" rel="stylesheet">
+		<link href="static/css/bootstrap.css" rel="stylesheet">
+		<link href="static/css/jquery.dataTables.min.css" rel="stylesheet">
+		<link href="static/css/styles.css" rel="stylesheet">
 	</head>
 	<body>
 
 		<div class="navbar navbar-inverse navbar-fixed-top">
-				<div class="navbar-inner">
-					<div class="container">
-						<button type="button" class="btn btn-navbar" data-toggle="collapse"
-							data-target=".nav-collapse">
-							<span class="icon-bar"></span> <span class="icon-bar"></span> <span
-								class="icon-bar"></span>
-						</button>
-						<a class="brand" href="/">DataLogging</a>
-						<div class="nav-collapse collapse">
-							<ul class="nav">
-								<li class="active"><a href="/">Home</a></li>
-								{% if g.user.is_authenticated%}
-									<li><a href="{{ url_for('apikeys') }}">API Keys</a></li>
-									<li><a href="{{ url_for('sensors') }}">Sensors</a></li>
-									<li><a href="{{ url_for('groups') }}">Groups</a></li>
-									<li><a href="{{ url_for('logout') }}">Logout</a></li>
-								{% endif %}
-								{% if not g.user.is_authenticated%}
-									<li><a href="{{ url_for('login') }}">Login</a></li>
-									<li><a href="{{ url_for('register') }}">Register</a></li>
-								{% endif %}
-							</ul>
-						</div>
-						<!--/.nav-collapse -->
+			<div class="navbar-inner">
+				<div class="container">
+					<button type="button" class="btn btn-navbar" data-toggle="collapse"
+						data-target=".nav-collapse">
+						<span class="icon-bar"></span> <span class="icon-bar"></span> <span
+							class="icon-bar"></span>
+					</button>
+					<a class="brand" href="/">DataLogging</a>
+					<div class="nav-collapse collapse">
+						<ul class="nav">
+							<li class="active"><a href="/">Home</a></li>
+							{% if g.user.is_authenticated%}
+								<li><a href="{{ url_for('apikeys') }}">API Keys</a></li>
+								<li><a href="{{ url_for('sensors') }}">Sensors</a></li>
+								<li><a href="{{ url_for('groups') }}">Groups</a></li>
+								<li><a href="{{ url_for('logout') }}">Logout</a></li>
+							{% endif %}
+							{% if not g.user.is_authenticated%}
+								<li><a href="{{ url_for('login') }}">Login</a></li>
+								<li><a href="{{ url_for('register') }}">Register</a></li>
+							{% endif %}
+						</ul>
 					</div>
+					<!--/.nav-collapse -->
 				</div>
+			</div>
 		</div>
 
 		<div id="main" class="container">
 			{% with messages = get_flashed_messages() %}
 			{% if messages %}
-			  <div class="alert">
-				    <ul class="flashes">
-				    {% for message in messages %}
-				      <li>{{ message }}</li>
-				    {% endfor %}
-				    </ul>
+				<div class="alert">
+					<ul class="flashes">
+					{% for message in messages %}
+						<li>{{ message }}</li>
+					{% endfor %}
+					</ul>
 				</div>
 			{% endif %}
 			{% endwith %}
@@ -55,13 +56,12 @@
 			{% block body %}{% endblock %}
 			<hr>
 			<footer id="footer">
-						<p>&copy; Eddy Hintze 2016</p>		
+				<p>&copy; Eddy Hintze 2016</p>		
 			</footer>
 		</div>
 
-		<script src="/static/js/jquery.min.js"></script>
-		<script src="/static/js/jquery.tablesorter.min.js"></script>
-		<script src="/static/js/bootstrap.min.js"></script>
-		<script src="/static/js/init.js"></script>
+		<script src="static/js/jquery.min.js"></script>
+		<script src="static/js/jquery.dataTables.1.10.10.min.js"></script>
+		<script src="static/js/init.js"></script>
 	</body>
 </html>
