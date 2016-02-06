@@ -611,7 +611,7 @@ class APIGetGroupData(Resource):
                     filter_sensors = []
 
                 for sensor in group_sensors:
-                    if limit_sensor == sensor.name or limit_sensor is None:
+                    if limit_sensor.lower() == sensor.name.lower() or limit_sensor is None:
                         rdata['data'].append(get_sensor_data(sensor.key, limit=limit, sort_by=sort_by))
                     else:
                         filter_sensors.append(sensor)
@@ -622,7 +622,8 @@ class APIGetGroupData(Resource):
                         # Get oldest item in limit_sensor
                         oldest_time = rdata['data'][0]['values'][-1]['timestamp']
                     except IndexError:
-                        rdata['message'] = "Invalid limit sensor: {}".format(limit_sensor)
+                        rdata['success'] = True
+                        rdata['message'] = "No data for limit sensor: {}".format(limit_sensor)
                         return rdata
 
                     for sensor in filter_sensors:
