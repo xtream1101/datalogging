@@ -81,6 +81,7 @@ The data type that you expect the data to be. The data values will be returned i
 - __key__ - _Required_ - 6 char key
 - __sort_by__ - _Optional_ - Default is `desc`, other option is `asc`
 - __limit__ - _Optional_ - Default is to get all values. Must be an integer.
+    + Advance __limit__ - _Optional_ - `<sensor_name>:<int>` - Will limit the results for `sensor_name` to the int passed with it. All other sensors in that group will get any data that is newr then the oldest item in the `sensor_name` passed in. This is useful to get an unknown number of logs that a group may have. Only works with `sort_by` as `desc` (which is the default)
 - Returns a JSON object:
     + __data__ - _Type: Object or Array_ - Contains the requested data items. If called with a `sensor` endpoint, it will return an object with the data below. If called with a `group` endpoint, it will return an array with these objects in it. The list of sensors is not sorted, the values are.
         * __errors__ - _Type: Object_ - Holds any errors that the data may have returned with

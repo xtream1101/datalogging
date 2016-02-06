@@ -546,6 +546,7 @@ class APIGetSensorData(Resource):
                 try:
                     limit = abs(int(request.args['limit']))
                 except:
+                    print("Invalid Limit:", str(e), str(traceback.format_exc()))
                     rdata['message'] = "Invalid limit: {}".format(request.args['limit'])
                     return rdata
 
@@ -580,12 +581,22 @@ class APIGetGroupData(Resource):
 
             # Default limit
             limit = None
+            limit_sensor = None
             if 'limit' in request.args:
                 # Limit number of values that are returned per sensor
                 try:
-                    limit = abs(int(request.args['limit']))
-                except:
-                    rdata['message'] = "Invalid limit: {}".format(request.args['limit'])
+                    limit_raw = request.args['limit']
+                    if ':' in limit_raw:
+                        limit_sensor, limit = limit_raw.split(':')
+                        if sort_by != 'desc':
+                            rdata['message'] = "Can only use limit=<sensor_name>:<num> if sort_bay is desc"
+                            return rdata
+                    else:
+                        limit = limit_raw
+                    limit = abs(int(limit))
+                except Exception as e:
+                    print("Invalid Limit:", str(e), str(traceback.format_exc()))
+                    rdata['message'] = "Invalid limit: {}".format(limit)
                     return rdata
 
             if 'key' in request.args:
@@ -594,14 +605,35 @@ class APIGetGroupData(Resource):
                 group = Group.query.filter_by(key=group_key).scalar()
                 group_sensors = Sensor.query.filter_by(group=group).all()
                 rdata['data'] = []
+
+                # Need to run through this list of sensors with a date filter
+                if limit_sensor is not None:
+                    filter_sensors = []
+
                 for sensor in group_sensors:
-                    rdata['data'].append(get_sensor_data(sensor.key, limit=limit, sort_by=sort_by))
+                    if limit_sensor == sensor.name or limit_sensor is None:
+                        rdata['data'].append(get_sensor_data(sensor.key, limit=limit, sort_by=sort_by))
+                    else:
+                        filter_sensors.append(sensor)
+
+                # If we have a limit_sensor, then get the rest of the sensors with the date filtered
+                if limit_sensor is not None and sort_by == 'desc':
+                    try:
+                        # Get oldest item in limit_sensor
+                        oldest_time = rdata['data'][0]['values'][-1]['timestamp']
+                    except IndexError:
+                        rdata['message'] = "Invalid limit sensor: {}".format(limit_sensor)
+                        return rdata
+
+                    for sensor in filter_sensors:
+                        rdata['data'].append(get_sensor_data(sensor.key, sort_by=sort_by, date=oldest_time))
 
                 rdata['success'] = True
             else:
                 rdata['message'] = "Must pass in a group key"
+                return rdata
         except Exception as e:
-            print(str(e))
+            print("Group data get error:", str(e), str(traceback.format_exc()))
             rdata['message'] = "Oops, something went wrong with getting your group data"
 
         return rdata
@@ -631,10 +663,8 @@ class APIGetGroupList(Resource):
         return rdata
 
 
-# api.add_resource(APIAddData, '/add')
 api.add_resource(APIAddGroupData, '/add/group')
 api.add_resource(APIAddSensorData, '/add/sensor')
-# api.add_resource(APIGetData, '/get')
 api.add_resource(APIGetGroupList, '/get/groups')
 api.add_resource(APIGetGroupData, '/get/group')
 api.add_resource(APIGetSensorData, '/get/sensor')
@@ -643,17 +673,31 @@ api.add_resource(APIGetSensorData, '/get/sensor')
 #######################
 # API Utils
 #######################
-def get_sensor_data(sensor_key, limit=None, sort_by='desc'):
+def get_sensor_data(sensor_key, limit=None, sort_by='desc', date=None):
     data = {}
     data['errors'] = {}
 
     # Get sensor to find what data type the values are
     sensor = Sensor.query.filter_by(key=sensor_key).scalar()
+
     # Get all of the data for that sensor
     if sort_by == 'asc':
-        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.asc()).limit(limit)
+        sensor_data = SensorData.query.filter_by(sensor=sensor)\
+                                      .order_by(SensorData.date_added.asc())\
+                                      .limit(limit)
     else:
-        sensor_data = SensorData.query.filter_by(sensor=sensor).order_by(SensorData.date_added.desc()).limit(limit)
+        if date is not None:
+            # Filter by date
+            # Convert string dat to dattime object to be used to search in the database
+            date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+            sensor_data = SensorData.query.filter_by(sensor=sensor)\
+                                          .filter(SensorData.date_added >= date)\
+                                          .order_by(SensorData.date_added.desc())\
+                                          .limit(limit)
+        else:
+            sensor_data = SensorData.query.filter_by(sensor=sensor)\
+                                          .order_by(SensorData.date_added.desc())\
+                                          .limit(limit)
 
     try:
         group_name = sensor.group.name
@@ -678,7 +722,7 @@ def get_sensor_data(sensor_key, limit=None, sort_by='desc'):
 #######################
 def datetime_to_str(timestamp):
     # The script is set to use UTC, so all times are in UTC
-    return timestamp.isoformat() + "+00:00"
+    return timestamp.isoformat() + "+0000"
 
 
 def convert_value(data_type):
