@@ -648,8 +648,15 @@ class APIGetGroupList(Resource):
                  'data': None,
                  }
         try:
+            name_filter = None
+            if 'filter' in request.args:
+                name_filter = request.args['filter']
+
             # Requesting all sensors in a group
-            groups = Group.query.all()
+            if name_filter is not None:
+                groups = Group.query.filter(Group.name.like("%" + name_filter + "%")).all()
+            else:
+                groups = Group.query.all()
             rdata['data'] = []
             for group in groups:
                 group_dict = {'name': group.name, 'key': group.key}
@@ -657,7 +664,7 @@ class APIGetGroupList(Resource):
 
             rdata['success'] = True
         except Exception as e:
-            print(str(e))
+            print("Group list error:", str(e), str(traceback.format_exc()))
             rdata['message'] = "Oops, something went wrong with getting the group list"
 
         return rdata

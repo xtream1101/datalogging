@@ -71,6 +71,7 @@ The data type that you expect the data to be. The data values will be returned i
 
 #### Get list of groups
 - Endpoint: `/api/v1/get/groups`
+- __filter__ - _Optional_ - Will return a list of groups that contain the string passed
 - Returns JSON object:
     + __data__ - _Type:  Array_ - Contains the list of groups, each object is as follows: 
         * __name__ - _Type: String_ - Group name
