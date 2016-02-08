@@ -611,10 +611,13 @@ class APIGetGroupData(Resource):
                     filter_sensors = []
 
                 for sensor in group_sensors:
-                    if limit_sensor.lower() == sensor.name.lower() or limit_sensor is None:
+                    if limit_sensor is None:
                         rdata['data'].append(get_sensor_data(sensor.key, limit=limit, sort_by=sort_by))
                     else:
-                        filter_sensors.append(sensor)
+                        if limit_sensor.lower() == sensor.name.lower():
+                            rdata['data'].append(get_sensor_data(sensor.key, limit=limit, sort_by=sort_by))
+                        else:
+                            filter_sensors.append(sensor)
 
                 # If we have a limit_sensor, then get the rest of the sensors with the date filtered
                 if limit_sensor is not None and sort_by == 'desc':
