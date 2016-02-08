@@ -1,3 +1,3 @@
 $(function(){
-    $('#table-list').dataTable();
+    $('.table-list').dataTable();
 });
