@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block body %}
+<div id="main" class="container">
+
+
+    <form action="/template/add/group" method=post class="form-horizontal">
+        <h4>Add new group</h4>
+
+        <input type="text" id="name" name="name" class="input-large"
+        placeholder="Name the group" value="{{ request.form.name }}"
+        required>
+
+        <button type="submit" class="btn btn-success">Add Group</button>
+    </form>
+
+    <h2>All Groups</h2>
+    <table id="table-list" class="display table-hover table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%- for group in groups %}
+            <tr>
+                <td>{{ group.name }}</td>
+                <td><a href="/template/delete/group/{{ group.id }}">Delete</a></td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+
+
+
+
+    <form action="/template/add/sensor" method=post class="form-horizontal">
+        <h4>Add new sensor</h4>
+
+        <input type="text" id="name" name="name" class="input-large"
+        placeholder="Name the sensor" value="{{ request.form.name }}"
+        required>
+
+        <select id="data_type" class="select-data_type" name="data_type">
+            <option value="string">String</option>
+            <option value="int">Int</option>        
+            <option value="float">Float</option>        
+            <option value="boolean">Boolean</option>        
+        </select>
+
+        <select id="group" class="select-group" name="group">
+            <option value="">No Group</option>
+            {%- for group in groups %}
+            <option value="{{ group.id }}">{{ group.name }}</option>
+            {%- endfor %}        
+        </select>
+
+        <button type="submit" class="btn btn-success">Add Sensor</button>
+    </form>
+
+    <h2>All Sensors</h2>
+    <table id="table-list" class="display table-hover table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Data Type</th>
+                <th>Group</th>
+                <th>Actions</th>
+            </th>
+        </thead>
+        <tbody>
+            {%- for sensor in sensors %}
+            <tr>
+                <td>{{ sensor.group.name }}.{{ sensor.name }}</td>
+                <td>{{ sensor.data_type }}</td>
+                <td>{{ sensor.group.name }}</td>
+                <td><a href="/template/delete/sensor/{{ sensor.id }}">Delete</a></td>
+            </tr>
+            {%- endfor %}
+        </tbody>
+    </table>
+
+</div>
+{% endblock %}

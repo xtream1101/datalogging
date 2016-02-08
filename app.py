@@ -76,7 +76,9 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, default=datetime.datetime.now)
     apikeys = db.relationship('ApiKey', backref='user', cascade='all, delete', lazy='dynamic')
     sensors = db.relationship('Sensor', backref='user', cascade='all, delete', lazy='dynamic')
+    sensor_templates = db.relationship('SensorTemplate', backref='user', cascade='all, delete', lazy='dynamic')
     groups = db.relationship('Group', backref='user', lazy='dynamic')
+    group_templates = db.relationship('GroupTemplate', backref='user', lazy='dynamic')
 
     def __init__(self, first_name, last_name, password, email):
         self.first_name = first_name
@@ -139,6 +141,19 @@ class Sensor(db.Model):
         self.data_type = data_type
 
 
+class SensorTemplate(db.Model):
+    __tablename__ = 'sensor_templates'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(60))
+    data_type = db.Column(db.String(16))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    group_template_id = db.Column(db.Integer, db.ForeignKey('group_templates.id'))
+
+    def __init__(self, name, data_type):
+        self.name = name
+        self.data_type = data_type
+
+
 class SensorData(db.Model):
     __tablename__ = 'sensor_data'
     id = db.Column('id', db.Integer, primary_key=True)
@@ -160,6 +175,17 @@ class Group(db.Model):
     key = db.Column(db.String(36), unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     sensor = db.relationship('Sensor', backref='group', lazy='dynamic')
+
+    def __init__(self, name):
+        self.name = name
+
+
+class GroupTemplate(db.Model):
+    __tablename__ = 'group_templates'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(32))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    sensor = db.relationship('SensorTemplate', backref='group', cascade='all, delete', lazy='dynamic')
 
     def __init__(self, name):
         self.name = name
@@ -346,6 +372,87 @@ def group_delete(group_id):
     db.session.commit()
     flash("Deleted group {}".format(group.name))
     return redirect(url_for('groups'))
+
+
+###
+# Template for group/sensors
+###
+@app.route('/templates', methods=['GET'])
+@login_required
+def template():
+    return render_template('group_templates.html',
+                           sensors=SensorTemplate.query.filter_by(user_id=g.user.id).all(),
+                           groups=GroupTemplate.query.filter_by(user_id=g.user.id).order_by(GroupTemplate.name.asc()).all()
+                           )
+
+
+@app.route('/template/add/sensor', methods=['POST'])
+@login_required
+def add_sensor_template():
+    if request.method == 'POST':
+        name = request.form['name'].strip()
+        data_type = request.form['data_type'].strip()
+        group = request.form['group'].strip()
+        if not name:
+            flash('Name is required', 'error')
+        elif not data_type:
+            flash('Type is required', 'error')
+        else:
+            sensor = SensorTemplate(name, data_type)
+            sensor.user = g.user
+            # If a group is selected, add it to sensors
+            if group == "":
+                flash("You must pick a group")
+                return redirect(url_for('template'))
+
+            sensor.group = GroupTemplate.query.filter_by(id=int(group)).scalar()
+
+            db.session.add(sensor)
+            db.session.commit()
+            flash('Sensor {} was successfully created'.format(sensor.name))
+            return redirect(url_for('template'))
+
+
+@app.route('/template/delete/sensor/<int:sensor_id>', methods=['GET'])
+@login_required
+def sensor_template_delete(sensor_id):
+    sensor = SensorTemplate.query.filter_by(user_id=g.user.id).filter_by(id=sensor_id).scalar()
+    db.session.delete(sensor)
+    db.session.commit()
+    flash("Deleted sensor " + sensor.name)
+    return redirect(url_for('template'))
+
+
+@app.route('/template/add/group', methods=['POST'])
+@login_required
+def add_group_template():
+    if request.method == 'POST':
+        name = request.form['name'].strip()
+        if not name:
+            flash('Name is required', 'error')
+        else:
+            print(g.user.id)
+            # Check if group name for user already exists
+            is_group = GroupTemplate.query.filter_by(user_id=g.user.id).filter_by(name=name).scalar()
+            if is_group is not None:
+                flash('Group with name {} already exists'.format(name), 'error')
+            else:
+                group = GroupTemplate(name)
+                group.user = g.user
+                db.session.add(group)
+                db.session.commit()
+                flash('Group {} was successfully created'.format(group.name))
+                return redirect(url_for('template'))
+
+
+@app.route('/template/delete/group/<int:group_id>', methods=['GET'])
+@login_required
+def group_template_delete(group_id):
+    group = GroupTemplate.query.filter_by(user_id=g.user.id).filter_by(id=group_id).scalar()
+    db.session.delete(group)
+    db.session.commit()
+    flash("Deleted group template {}".format(group.name))
+    return redirect(url_for('template'))
 
 
 #######################

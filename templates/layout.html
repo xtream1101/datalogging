@@ -27,6 +27,7 @@
 								<li><a href="{{ url_for('apikeys') }}">API Keys</a></li>
 								<li><a href="{{ url_for('sensors') }}">Sensors</a></li>
 								<li><a href="{{ url_for('groups') }}">Groups</a></li>
+								<li><a href="{{ url_for('template') }}">Templates</a></li>
 								<li><a href="{{ url_for('logout') }}">Logout</a></li>
 							{% endif %}
 							{% if not g.user.is_authenticated%}
