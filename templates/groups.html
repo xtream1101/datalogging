@@ -9,6 +9,13 @@
         placeholder="Name the group" value="{{ request.form.name }}"
         required>
 
+        <select id="group-template" class="select-group-template" name="group-template">
+            <option value="">No Template</option>
+            {%- for template in group_templates %}
+            <option value="{{ template.id }}">{{ template.name }}</option>
+            {%- endfor %}        
+        </select>
+
         <button type="submit" class="btn btn-success">Add Group</button>
     </form>
 

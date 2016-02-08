@@ -341,6 +341,7 @@ def sensor_delete(sensor_id):
 def groups():
     if request.method == 'POST':
         name = request.form['name'].strip()
+        template_id = request.form['group-template'].strip()
         if not name:
             flash('Name is required', 'error')
         else:
@@ -355,12 +356,25 @@ def groups():
                 # Flush to get the id so it can be encoded
                 db.session.flush()
                 group.key = generate_key(group.id, 'Group salt abc')
+                # If a template was selected, get and create all the sensors for this group
+                if template_id:
+                    template_sensors = SensorTemplate.query.filter_by(user_id=g.user.id).filter_by(group_template_id=template_id)
+                    for sensor in template_sensors:
+                        sensor = Sensor(sensor.name, sensor.data_type)
+                        sensor.user = g.user
+                        sensor.group = group
+                        db.session.add(sensor)
+                        # Flush to get the id so it can be encoded
+                        db.session.flush()
+                        sensor.key = generate_key(sensor.id, 'Sensor salt xyz')
+
                 db.session.commit()
                 flash('Group {} was successfully created'.format(group.name))
                 return redirect(url_for('groups'))
 
     return render_template('groups.html',
-                           groups=Group.query.filter_by(user_id=g.user.id).all()
+                           groups=Group.query.filter_by(user_id=g.user.id).all(),
+                           group_templates=GroupTemplate.query.filter_by(user_id=g.user.id).order_by(GroupTemplate.name.asc()).all()
                            )
 
 

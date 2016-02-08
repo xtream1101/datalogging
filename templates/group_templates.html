@@ -4,16 +4,16 @@
 
 
     <form action="/template/add/group" method=post class="form-horizontal">
-        <h4>Add new group</h4>
+        <h4>Add new templates</h4>
 
         <input type="text" id="name" name="name" class="input-large"
         placeholder="Name the group" value="{{ request.form.name }}"
         required>
 
-        <button type="submit" class="btn btn-success">Add Group</button>
+        <button type="submit" class="btn btn-success">Add Template</button>
     </form>
 
-    <h2>All Groups</h2>
+    <h2>All Templates</h2>
     <table id="table-list" class="display table-hover table-striped">
         <thead>
             <tr>
@@ -32,10 +32,8 @@
     </table>
 
 
-
-
     <form action="/template/add/sensor" method=post class="form-horizontal">
-        <h4>Add new sensor</h4>
+        <h4>Add new template sensor</h4>
 
         <input type="text" id="name" name="name" class="input-large"
         placeholder="Name the sensor" value="{{ request.form.name }}"
@@ -58,7 +56,7 @@
         <button type="submit" class="btn btn-success">Add Sensor</button>
     </form>
 
-    <h2>All Sensors</h2>
+    <h2>All Template Sensors</h2>
     <table id="table-list" class="display table-hover table-striped">
         <thead>
             <tr>
