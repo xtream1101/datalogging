@@ -821,7 +821,11 @@ def get_sensor_data(sensor_key, limit=None, sort_by='desc', date=None):
         if date is not None:
             # Filter by date
             # Convert string dat to dattime object to be used to search in the database
-            date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+            try:
+                date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+            except ValueError:
+                date = datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z")
+
             sensor_data = SensorData.query.filter_by(sensor=sensor)\
                                           .filter(SensorData.date_added >= date)\
                                           .order_by(SensorData.date_added.desc())\
