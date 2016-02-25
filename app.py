@@ -2,6 +2,7 @@ import os
 import sys
 import yaml
 import uuid
+import logging
 import datetime
 import traceback
 from functools import wraps
@@ -14,6 +15,12 @@ from flask.ext.cors import CORS
 from flask.ext.login import LoginManager
 from flask.ext.login import login_user, logout_user, current_user, login_required
 
+logging.basicConfig(level=logging.DEBUG,
+                    filename='./logs/datalogging.log',
+                    format='%(asctime)s %(name)s %(levelname)s %(message)s'
+                    )
+
+logger = logging.getLogger(__name__)
 
 #######################
 # Setup / Configuration
@@ -964,7 +971,8 @@ def before_request():
 
 if __name__ == '__main__':
     db.create_all()
-    app.run(debug=config['debug'],
+    app.run(threaded=True,
+            debug=config['debug'],
             host=config['host'],
             port=int(config['port'])
             )
