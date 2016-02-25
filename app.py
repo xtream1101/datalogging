@@ -476,9 +476,9 @@ def add_sensor_template():
             db.session.add(sensor)
             db.session.commit()
             logger.info("User {} created sensor {} - {} for template group {}"
-                        .format(g.user.email, sensor.key, sensor.name, sensor.group.key))
+                        .format(g.user.email, sensor.id, sensor.name, sensor.group.name))
             flash("Sensor {} was successfully created".format(sensor.name))
-            return redirect(url_for('template'))
+    return redirect(url_for('template'))
 
 
 @app.route('/template/delete/sensor/<int:sensor_id>', methods=['GET'])
@@ -488,8 +488,8 @@ def sensor_template_delete(sensor_id):
                                  .filter_by(id=sensor_id).scalar()
     db.session.delete(sensor)
     db.session.commit()
-    logger.info("User {} deleted sensor {} - {} for template group {}"
-                .format(g.user.email, sensor.key, sensor.name, sensor.group.key))
+    logger.info("User {} deleted sensor {} - {} from template"
+                .format(g.user.email, sensor.id, sensor.name))
     flash("Deleted sensor " + sensor.name)
     return redirect(url_for('template'))
 
@@ -514,9 +514,9 @@ def add_group_template():
                 db.session.add(group)
                 db.session.commit()
                 logger.info("User {} created template group {} - {}"
-                            .format(g.user.email, group.key, group.name))
+                            .format(g.user.email, group.id, group.name))
                 flash("Group {} was successfully created".format(group.name))
-                return redirect(url_for('template'))
+    return redirect(url_for('template'))
 
 
 @app.route('/template/delete/group/<int:group_id>', methods=['GET'])
@@ -527,7 +527,7 @@ def group_template_delete(group_id):
     db.session.delete(group)
     db.session.commit()
     logger.info("User {} deleted template group {} - {}"
-                .format(g.user.email, group.key, group.name))
+                .format(g.user.email, group.id, group.name))
     flash("Deleted group template {}".format(group.name))
     return redirect(url_for('template'))
 
@@ -865,7 +865,7 @@ class APIGetGroupList(Resource):
                 rdata['data'].append(group_dict)
 
             rdata['success'] = True
-        except Exception as e:
+        except Exception:
             logger.exception("[APIGetGroupList GET] Oops, something went wrong with getting the group list")
             rdata['message'] = "Oops, something went wrong with getting the group list"
 
