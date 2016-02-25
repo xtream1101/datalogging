@@ -74,11 +74,15 @@ class User(db.Model):
     password = db.Column(db.String(255))
     email = db.Column(db.String(50), unique=True, index=True)
     registered_on = db.Column(db.DateTime, default=datetime.datetime.now)
-    apikeys = db.relationship('ApiKey', backref='user', cascade='all, delete', lazy='dynamic')
-    sensors = db.relationship('Sensor', backref='user', cascade='all, delete', lazy='dynamic')
-    sensor_templates = db.relationship('SensorTemplate', backref='user', cascade='all, delete', lazy='dynamic')
+    apikeys = db.relationship('ApiKey', backref='user', cascade='all, delete',
+                              lazy='dynamic')
+    sensors = db.relationship('Sensor', backref='user', cascade='all, delete',
+                              lazy='dynamic')
+    sensor_templates = db.relationship('SensorTemplate', backref='user',
+                                       cascade='all, delete', lazy='dynamic')
     groups = db.relationship('Group', backref='user', lazy='dynamic')
-    group_templates = db.relationship('GroupTemplate', backref='user', lazy='dynamic')
+    group_templates = db.relationship('GroupTemplate', backref='user',
+                                      lazy='dynamic')
 
     def __init__(self, first_name, last_name, password, email):
         self.first_name = first_name
@@ -134,7 +138,8 @@ class Sensor(db.Model):
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
-    sensor_data = db.relationship('SensorData', backref='sensor', cascade='all, delete', lazy='dynamic')
+    sensor_data = db.relationship('SensorData', backref='sensor',
+                                  cascade='all, delete', lazy='dynamic')
 
     def __init__(self, name, data_type):
         self.name = name
@@ -185,7 +190,8 @@ class GroupTemplate(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(32))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    sensor = db.relationship('SensorTemplate', backref='group', cascade='all, delete', lazy='dynamic')
+    sensor = db.relationship('SensorTemplate', backref='group',
+                             cascade='all, delete', lazy='dynamic')
 
     def __init__(self, name):
         self.name = name
@@ -218,10 +224,11 @@ def register():
         user = User(first_name, last_name, password, email)
         db.session.add(user)
         db.session.commit()
-        flash('You have registered the email {0}. Please login'.format(email))
+        flash("You have registered the email {0}. Please login".format(email))
         return redirect(url_for('login'))
     else:
-        flash('The mail {0} is already in use. Please try a new email.'.format(email))
+        flash("The mail {0} is already in use. Please try a new email."
+              .format(email))
         return redirect(url_for('register'))
 
 
@@ -238,15 +245,15 @@ def login():
     registered_user = User.query.filter_by(email=email).first()
 
     if registered_user is None:
-        flash('Invalid email/password', 'error')
+        flash("Invalid email/password", 'error')
         return redirect(url_for('login'))
 
     if not registered_user.verify_password(password):
-        flash('Invalid email/password', 'error')
+        flash("Invalid email/password", 'error')
         return redirect(url_for('login'))
 
     login_user(registered_user, remember=remember_me)
-    flash('Logged in successfully')
+    flash("Logged in successfully")
     return redirect(request.args.get('next') or url_for('index'))
 
 
@@ -264,13 +271,13 @@ def logout():
 def apikeys():
     if request.method == 'POST':
         if not request.form['name']:
-            flash('Name is required', 'error')
+            flash("Name is required", 'error')
         else:
             apikey = ApiKey(request.form['name'], request.form['host'])
             apikey.user = g.user
             db.session.add(apikey)
             db.session.commit()
-            flash('Api key was successfully created')
+            flash("Api key was successfully created")
             return redirect(url_for('apikeys'))
 
     return render_template('apikeys.html',
@@ -281,7 +288,8 @@ def apikeys():
 @app.route('/apikey/delete/<int:apikey_id>', methods=['GET'])
 @login_required
 def apikey_delete(apikey_id):
-    api_key = ApiKey.query.filter_by(user_id=g.user.id).filter_by(id=apikey_id).scalar()
+    api_key = ApiKey.query.filter_by(user_id=g.user.id)\
+                          .filter_by(id=apikey_id).scalar()
     db.session.delete(api_key)
     db.session.commit()
     flash("Deleted API key " + api_key.name)
@@ -299,9 +307,9 @@ def sensors():
         data_type = request.form['data_type'].strip()
         group = request.form['group'].strip()
         if not name:
-            flash('Name is required', 'error')
+            flash("Name is required", 'error')
         elif not data_type:
-            flash('Type is required', 'error')
+            flash("Type is required", 'error')
         else:
             sensor = Sensor(name, data_type)
             sensor.user = g.user
@@ -314,12 +322,13 @@ def sensors():
             db.session.flush()
             sensor.key = generate_key(sensor.id, 'Sensor salt xyz')
             db.session.commit()
-            flash('Sensor {} was successfully created'.format(sensor.name))
+            flash("Sensor {} was successfully created".format(sensor.name))
             return redirect(url_for('sensors'))
 
     return render_template('sensors.html',
                            sensors=Sensor.query.filter_by(user_id=g.user.id).all(),
-                           groups=Group.query.filter_by(user_id=g.user.id).order_by(Group.name.asc()).all()
+                           groups=Group.query.filter_by(user_id=g.user.id)
+                                             .order_by(Group.name.asc()).all()
                            )
 
 
@@ -343,12 +352,12 @@ def groups():
         name = request.form['name'].strip()
         template_id = request.form['group-template'].strip()
         if not name:
-            flash('Name is required', 'error')
+            flash("Name is required", 'error')
         else:
             # Check if group name for user already exists
             is_group = Group.query.filter_by(user_id=g.user.id).filter_by(name=name).scalar()
             if is_group is not None:
-                flash('Group with name {} already exists'.format(name), 'error')
+                flash("Group with name {} already exists".format(name), 'error')
             else:
                 group = Group(name)
                 group.user = g.user
@@ -358,7 +367,8 @@ def groups():
                 group.key = generate_key(group.id, 'Group salt abc')
                 # If a template was selected, get and create all the sensors for this group
                 if template_id:
-                    template_sensors = SensorTemplate.query.filter_by(user_id=g.user.id).filter_by(group_template_id=template_id)
+                    template_sensors = SensorTemplate.query.filter_by(user_id=g.user.id)\
+                                                           .filter_by(group_template_id=template_id)
                     for sensor in template_sensors:
                         sensor = Sensor(sensor.name, sensor.data_type)
                         sensor.user = g.user
@@ -369,12 +379,13 @@ def groups():
                         sensor.key = generate_key(sensor.id, 'Sensor salt xyz')
 
                 db.session.commit()
-                flash('Group {} was successfully created'.format(group.name))
+                flash("Group {} was successfully created".format(group.name))
                 return redirect(url_for('groups'))
 
     return render_template('groups.html',
                            groups=Group.query.filter_by(user_id=g.user.id).all(),
-                           group_templates=GroupTemplate.query.filter_by(user_id=g.user.id).order_by(GroupTemplate.name.asc()).all()
+                           group_templates=GroupTemplate.query.filter_by(user_id=g.user.id)
+                                                        .order_by(GroupTemplate.name.asc()).all()
                            )
 
 
@@ -396,7 +407,8 @@ def group_delete(group_id):
 def template():
     return render_template('group_templates.html',
                            sensors=SensorTemplate.query.filter_by(user_id=g.user.id).all(),
-                           groups=GroupTemplate.query.filter_by(user_id=g.user.id).order_by(GroupTemplate.name.asc()).all()
+                           groups=GroupTemplate.query.filter_by(user_id=g.user.id)
+                                                     .order_by(GroupTemplate.name.asc()).all()
                            )
 
 
@@ -408,9 +420,9 @@ def add_sensor_template():
         data_type = request.form['data_type'].strip()
         group = request.form['group'].strip()
         if not name:
-            flash('Name is required', 'error')
+            flash("Name is required", 'error')
         elif not data_type:
-            flash('Type is required', 'error')
+            flash("Type is required", 'error')
         else:
             sensor = SensorTemplate(name, data_type)
             sensor.user = g.user
@@ -423,14 +435,15 @@ def add_sensor_template():
 
             db.session.add(sensor)
             db.session.commit()
-            flash('Sensor {} was successfully created'.format(sensor.name))
+            flash("Sensor {} was successfully created".format(sensor.name))
             return redirect(url_for('template'))
 
 
 @app.route('/template/delete/sensor/<int:sensor_id>', methods=['GET'])
 @login_required
 def sensor_template_delete(sensor_id):
-    sensor = SensorTemplate.query.filter_by(user_id=g.user.id).filter_by(id=sensor_id).scalar()
+    sensor = SensorTemplate.query.filter_by(user_id=g.user.id)\
+                                 .filter_by(id=sensor_id).scalar()
     db.session.delete(sensor)
     db.session.commit()
     flash("Deleted sensor " + sensor.name)
@@ -443,26 +456,28 @@ def add_group_template():
     if request.method == 'POST':
         name = request.form['name'].strip()
         if not name:
-            flash('Name is required', 'error')
+            flash("Name is required", 'error')
         else:
             print(g.user.id)
             # Check if group name for user already exists
-            is_group = GroupTemplate.query.filter_by(user_id=g.user.id).filter_by(name=name).scalar()
+            is_group = GroupTemplate.query.filter_by(user_id=g.user.id)\
+                                          .filter_by(name=name).scalar()
             if is_group is not None:
-                flash('Group with name {} already exists'.format(name), 'error')
+                flash("Group with name {} already exists".format(name), 'error')
             else:
                 group = GroupTemplate(name)
                 group.user = g.user
                 db.session.add(group)
                 db.session.commit()
-                flash('Group {} was successfully created'.format(group.name))
+                flash("Group {} was successfully created".format(group.name))
                 return redirect(url_for('template'))
 
 
 @app.route('/template/delete/group/<int:group_id>', methods=['GET'])
 @login_required
 def group_template_delete(group_id):
-    group = GroupTemplate.query.filter_by(user_id=g.user.id).filter_by(id=group_id).scalar()
+    group = GroupTemplate.query.filter_by(user_id=g.user.id)\
+                               .filter_by(id=group_id).scalar()
     db.session.delete(group)
     db.session.commit()
     flash("Deleted group template {}".format(group.name))
@@ -616,11 +631,13 @@ class APIAddGroupData(Resource):
                     if 'sensor' in data:
                         # Use sensor key to add value
                         sensor_id = data['sensor']
-                        sensor = Sensor.query.filter_by(group=group).filter_by(key=sensor_id).scalar()
+                        sensor = Sensor.query.filter_by(group=group)\
+                                       .filter_by(key=sensor_id).scalar()
                     else:
                         # Use sensor name to add value
                         sensor_id = data['sensor_name']
-                        sensor = Sensor.query.filter_by(group=group).filter(Sensor.name.ilike(sensor_id)).scalar()
+                        sensor = Sensor.query.filter_by(group=group)\
+                                             .filter(Sensor.name.ilike(sensor_id)).scalar()
 
                     if sensor is None:
                         rdata['success'] = False
