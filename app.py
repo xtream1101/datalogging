@@ -15,6 +15,12 @@ from flask.ext.cors import CORS
 from flask.ext.login import LoginManager
 from flask.ext.login import login_user, logout_user, current_user, login_required
 
+try:
+    # Make dir to store logs in
+    os.makedirs('./logs/')
+except OSError:
+    pass
+
 logging.basicConfig(level=logging.DEBUG,
                     filename='./logs/datalogging.log',
                     format='%(asctime)s %(name)s %(levelname)s %(message)s'
@@ -217,11 +223,13 @@ class GroupTemplate(db.Model):
 #######################
 @app.route('/')
 def index():
+    logger.info("Index page with type {}".format(request.method))
     return render_template('index.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    logger.info("Register page with type {}".format(request.method))
     if config['disable_registration'] is True:
         flash("Registration is disabled at this time")
         return redirect(url_for('login'))
@@ -249,6 +257,7 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    logger.info("Login page with type {}".format(request.method))
     if request.method == 'GET':
         return render_template('login.html')
 
@@ -260,20 +269,26 @@ def login():
     registered_user = User.query.filter_by(email=email).first()
 
     if registered_user is None:
+        logger.warning("Invalid email/password: Email: \"{}\" Pass: \"{}\""
+                       .format(email, password))
         flash("Invalid email/password", 'error')
         return redirect(url_for('login'))
 
     if not registered_user.verify_password(password):
+        logger.warning("Invalid email/password: Email: \"{}\" Pass: \"{}\""
+                       .format(email, password))
         flash("Invalid email/password", 'error')
         return redirect(url_for('login'))
 
     login_user(registered_user, remember=remember_me)
+    logger.info("User {} logged in".format(email))
     flash("Logged in successfully")
     return redirect(request.args.get('next') or url_for('index'))
 
 
 @app.route('/logout')
 def logout():
+    logger.info("User {} logged out".format(g.user.email))
     logout_user()
     return redirect(url_for('index'))
 
@@ -284,6 +299,7 @@ def logout():
 @app.route('/apikeys', methods=['GET', 'POST'])
 @login_required
 def apikeys():
+    logger.info("Api Keys page with type {}".format(request.method))
     if request.method == 'POST':
         if not request.form['name']:
             flash("Name is required", 'error')
@@ -307,6 +323,7 @@ def apikey_delete(apikey_id):
                           .filter_by(id=apikey_id).scalar()
     db.session.delete(api_key)
     db.session.commit()
+    logger.info("User {} deleted API Key {}".format(g.user, api_key.name))
     flash("Deleted API key " + api_key.name)
     return redirect(url_for('apikeys'))
 
@@ -337,6 +354,8 @@ def sensors():
             db.session.flush()
             sensor.key = generate_key(sensor.id, 'Sensor salt xyz')
             db.session.commit()
+            logger.info("User {} created sensor {} - {}"
+                        .format(g.user.email, sensor.key, sensor.name))
             flash("Sensor {} was successfully created".format(sensor.name))
             return redirect(url_for('sensors'))
 
@@ -353,6 +372,8 @@ def sensor_delete(sensor_id):
     sensor = Sensor.query.filter_by(user_id=g.user.id).filter_by(id=sensor_id).scalar()
     db.session.delete(sensor)
     db.session.commit()
+    logger.info("User {} deleted sensor {} - {}"
+                .format(g.user.email, sensor.key, sensor.name))
     flash("Deleted sensor " + sensor.name)
     return redirect(url_for('sensors'))
 
@@ -394,6 +415,8 @@ def groups():
                         sensor.key = generate_key(sensor.id, 'Sensor salt xyz')
 
                 db.session.commit()
+                logger.info("User {} created group {} - {}"
+                            .format(g.user.email, group.key, group.name))
                 flash("Group {} was successfully created".format(group.name))
                 return redirect(url_for('groups'))
 
@@ -410,6 +433,8 @@ def group_delete(group_id):
     group = Group.query.filter_by(user_id=g.user.id).filter_by(id=group_id).scalar()
     db.session.delete(group)
     db.session.commit()
+    logger.info("User {} deleted group {} - {}"
+                .format(g.user.email, group.key, group.name))
     flash("Deleted group {}".format(group.name))
     return redirect(url_for('groups'))
 
@@ -450,6 +475,8 @@ def add_sensor_template():
 
             db.session.add(sensor)
             db.session.commit()
+            logger.info("User {} created sensor {} - {} for template group {}"
+                        .format(g.user.email, sensor.key, sensor.name, sensor.group.key))
             flash("Sensor {} was successfully created".format(sensor.name))
             return redirect(url_for('template'))
 
@@ -461,6 +488,8 @@ def sensor_template_delete(sensor_id):
                                  .filter_by(id=sensor_id).scalar()
     db.session.delete(sensor)
     db.session.commit()
+    logger.info("User {} deleted sensor {} - {} for template group {}"
+                .format(g.user.email, sensor.key, sensor.name, sensor.group.key))
     flash("Deleted sensor " + sensor.name)
     return redirect(url_for('template'))
 
@@ -484,6 +513,8 @@ def add_group_template():
                 group.user = g.user
                 db.session.add(group)
                 db.session.commit()
+                logger.info("User {} created template group {} - {}"
+                            .format(g.user.email, group.key, group.name))
                 flash("Group {} was successfully created".format(group.name))
                 return redirect(url_for('template'))
 
@@ -495,6 +526,8 @@ def group_template_delete(group_id):
                                .filter_by(id=group_id).scalar()
     db.session.delete(group)
     db.session.commit()
+    logger.info("User {} deleted template group {} - {}"
+                .format(g.user.email, group.key, group.name))
     flash("Deleted group template {}".format(group.name))
     return redirect(url_for('template'))
 
@@ -513,9 +546,11 @@ def authenticate_api(func):
                 # If valid, return
                 return func(*args, **kwargs)
             # If invalid, abort
+            logger.warning("authenticate_api: abort 401")
             abort(401)
         except KeyError:
             # If apikey is not even passed
+            logger.warning("authenticate_api KeyError: abort 401", exc_info=True)
             abort(401)
     return wrapper
 
@@ -542,11 +577,13 @@ def validate_api_sensor_key(func):
                 # The api key and sensor/group both belong to the same user
                 return func(*args, **kwargs)
             else:
+                logger.warning("Invalid sensor key")
                 rdata['message'] = "Invalid sensor key"
         except AttributeError:
+            logger.warning("Invalid sensor key", exc_info=True)
             rdata['message'] = "Invalid sensor key"
-        except Exception as e:
-            print(str(e))
+        except Exception:
+            logger.exception("Oops, somthing went wrong when validating your sensor")
             rdata['message'] = "Oops, somthing went wrong when validating your sensor"
 
         return rdata
@@ -575,11 +612,13 @@ def validate_api_group_key(func):
                 # The api key and sensor/group both belong to the same user
                 return func(*args, **kwargs)
             else:
+                logger.warning("Invalid group key")
                 rdata['message'] = "Invalid group key"
         except AttributeError:
+            logger.warning("Invalid group key", exc_info=True)
             rdata['message'] = "Invalid group key"
-        except Exception as e:
-            print(str(e))
+        except Exception:
+            logger.exception("Oops, somthing went wrong when validating your group")
             rdata['message'] = "Oops, somthing went wrong when validating your group"
 
         return rdata
@@ -608,9 +647,10 @@ class APIAddSensorData(Resource):
             db.session.commit()
             rdata['success'] = True
         except KeyError:
+            logger.info("You are missing the key/value")
             rdata['message'] = "You are missing the key/value"
-        except Exception as e:
-            print(str(e))
+        except Exception:
+            logger.exception("[APIAddSensorData GET] Oops, something went wrong")
             rdata['message'] = "Oops, something went wrong"
 
         return rdata
@@ -655,6 +695,7 @@ class APIAddGroupData(Resource):
                                              .filter(Sensor.name.ilike(sensor_id)).scalar()
 
                     if sensor is None:
+                        logger.warning("Invalid sensor key {}".format(sensor_id))
                         rdata['success'] = False
                         rdata['message'] += "Invalid sensor: {}\n".format(sensor_id)
                     else:
@@ -663,14 +704,16 @@ class APIAddGroupData(Resource):
                         db.session.add(sensor_data)
                         rdata['message'] += "Added value for sensor: {}\n".format(sensor_id)
                 except KeyError:
+                    logger.warning("Need both sensor value and group key", exc_info=True)
                     rdata['success'] = False
                     rdata['message'] += "Need both sensor value and group key\n"
                 db.session.commit()
         except KeyError:
+            logger.warning("You are missing the group key", exc_info=True)
             rdata['success'] = False
             rdata['message'] = "You are missing the group key"
-        except Exception as e:
-            print(str(e), str(traceback.format_exc()))
+        except Exception:
+            logger.exception("[APIAddGroupData POST] Oops, something went wrong with adding data to your group")
             rdata['success'] = False
             rdata['message'] = "Oops, something went wrong with adding data to your group"
 
@@ -698,8 +741,9 @@ class APIGetSensorData(Resource):
                 # Limit number of values that are returned per sensor
                 try:
                     limit = abs(int(request.args['limit']))
-                except:
-                    print("Invalid Limit:", str(e), str(traceback.format_exc()))
+                except Exception:
+                    logger.warning("Invalid sensor limit \"{}\""
+                                   .format(request.args['limit']), exc_info=True)
                     rdata['message'] = "Invalid limit: {}".format(request.args['limit'])
                     return rdata
 
@@ -710,8 +754,8 @@ class APIGetSensorData(Resource):
                 rdata['success'] = True
             else:
                 rdata['message'] = "Must pass in a sensor key"
-        except Exception as e:
-            print(str(e))
+        except Exception:
+            logger.exception("[APIGetSensorData GET] Oops, something went wrong getting your sensor data")
             rdata['message'] = "Oops, something went wrong getting your sensor data"
 
         return rdata
@@ -747,8 +791,9 @@ class APIGetGroupData(Resource):
                     else:
                         limit = limit_raw
                     limit = abs(int(limit))
-                except Exception as e:
-                    print("Invalid Limit:", str(e), str(traceback.format_exc()))
+                except Exception:
+                    logger.warning("Invalid sensor limit \"{}\""
+                                   .format(request.args['limit']), exc_info=True)
                     rdata['message'] = "Invalid limit: {}".format(limit)
                     return rdata
 
@@ -789,8 +834,8 @@ class APIGetGroupData(Resource):
             else:
                 rdata['message'] = "Must pass in a group key"
                 return rdata
-        except Exception as e:
-            print("Group data get error:", str(e), str(traceback.format_exc()))
+        except Exception:
+            logger.exception("[APIGetGroupData GET] Oops, something went wrong with getting your group data")
             rdata['message'] = "Oops, something went wrong with getting your group data"
 
         return rdata
@@ -821,7 +866,7 @@ class APIGetGroupList(Resource):
 
             rdata['success'] = True
         except Exception as e:
-            print("Group list error:", str(e), str(traceback.format_exc()))
+            logger.exception("[APIGetGroupList GET] Oops, something went wrong with getting the group list")
             rdata['message'] = "Oops, something went wrong with getting the group list"
 
         return rdata
