@@ -26,7 +26,8 @@ config = {'db_uri': 'sqlite:///datalogger.sqlite',
           'disable_registration': False,
           'host': '0.0.0.0',
           'port': 5000,
-          'secret_key': 'SECRET_KEY'
+          'secret_key': 'SECRET_KEY',
+          'schema': 'datalogging'
           }
 
 if len(sys.argv) >= 2:
@@ -67,6 +68,7 @@ def generate_key(id, salt, size=6):
 # Database Models
 #######################
 class User(db.Model):
+    __table_args__ = {"schema": config['schema']}
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(32))
@@ -112,17 +114,18 @@ class User(db.Model):
         return str(self.id)
 
     def __repr__(self):
-        return '<emal %r>' % (self.email)
+        return '<email %r>' % (self.email)
 
 
 class ApiKey(db.Model):
+    __table_args__ = {'schema': config['schema']}
     __tablename__ = 'apikeys'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(60))
     host = db.Column(db.String(255))
     key = db.Column(db.String(36), default=generate_api_key, unique=True)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.users.id'))
 
     def __init__(self, name, host):
         self.name = name
@@ -130,14 +133,15 @@ class ApiKey(db.Model):
 
 
 class Sensor(db.Model):
+    __table_args__ = {'schema': config['schema']}
     __tablename__ = 'sensors'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(60))
     data_type = db.Column(db.String(16))
     key = db.Column(db.String(36), unique=True)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.users.id'))
+    group_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.groups.id'))
     sensor_data = db.relationship('SensorData', backref='sensor',
                                   cascade='all, delete', lazy='dynamic')
 
@@ -147,12 +151,13 @@ class Sensor(db.Model):
 
 
 class SensorTemplate(db.Model):
+    __table_args__ = {'schema': config['schema']}
     __tablename__ = 'sensor_templates'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(60))
     data_type = db.Column(db.String(16))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    group_template_id = db.Column(db.Integer, db.ForeignKey('group_templates.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.users.id'))
+    group_template_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.group_templates.id'))
 
     def __init__(self, name, data_type):
         self.name = name
@@ -160,6 +165,7 @@ class SensorTemplate(db.Model):
 
 
 class SensorData(db.Model):
+    __table_args__ = {'schema': config['schema']}
     __tablename__ = 'sensor_data'
     id = db.Column('id', db.Integer, primary_key=True)
     # value = db.Column(db.String(128))
@@ -167,18 +173,19 @@ class SensorData(db.Model):
     #       That way we are not using TEXT to store a single number
     value = db.Column(db.Text)
     date_added = db.Column(db.DateTime, default=datetime.datetime.now)
-    sensor_id = db.Column(db.Integer, db.ForeignKey('sensors.id'))
+    sensor_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.sensors.id'))
 
     def __init__(self, value):
         self.value = str(value)
 
 
 class Group(db.Model):
+    __table_args__ = {'schema': config['schema']}
     __tablename__ = 'groups'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(32))
     key = db.Column(db.String(36), unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.users.id'))
     sensor = db.relationship('Sensor', backref='group', lazy='dynamic')
 
     def __init__(self, name):
@@ -186,10 +193,11 @@ class Group(db.Model):
 
 
 class GroupTemplate(db.Model):
+    __table_args__ = {'schema': config['schema']}
     __tablename__ = 'group_templates'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column(db.String(32))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(config['schema']+'.users.id'))
     sensor = db.relationship('SensorTemplate', backref='group',
                              cascade='all, delete', lazy='dynamic')
 
